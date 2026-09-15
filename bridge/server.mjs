@@ -1,22 +1,60 @@
 #!/usr/bin/env node
 /**
- * Lokalni most za pametne naprave v LAN omrežju.
- * Zaženi na Raspberry Pi / NAS / vedno prižganem računalniku:
- *   BRIDGE_TOKEN=tvoj-skrivni-kljuc node bridge/server.mjs
+ * Domači most: teče na vedno prižganem strežniku v LAN omrežju.
+ * Iskanje naprav (Shelly, Tasmota) in ukazi za vklop/izklop.
  *
- * Nato most izpostavi prek Cloudflare Tunnel, Tailscale ali VPN,
- * da ga Vercel aplikacija lahko kliče po HTTPS.
+ * Windows:  powershell -File bridge/start.ps1
+ * Linux:    ./bridge/start.sh
  */
+import dgram from "node:dgram";
+import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
+import path from "node:path";
 import { Buffer } from "node:buffer";
+import { fileURLToPath } from "node:url";
 
+const DIR = path.dirname(fileURLToPath(import.meta.url));
+const TOKEN_FILE = path.join(DIR, "token.txt");
 const PORT = Number(process.env.PORT || 8787);
-const TOKEN = process.env.BRIDGE_TOKEN || "";
-const TIMEOUT_MS = 1200;
+const TIMEOUT_MS = Number(process.env.PROBE_TIMEOUT || 900);
+const SCAN_EVERY_MS = Number(process.env.SCAN_INTERVAL_MS || 5 * 60 * 1000);
 
-if (!TOKEN) {
-  console.error("Nastavi BRIDGE_TOKEN pred zagonom mostu.");
-  process.exit(1);
+function loadOrCreateToken() {
+  if (process.env.BRIDGE_TOKEN) return process.env.BRIDGE_TOKEN.trim();
+  if (fs.existsSync(TOKEN_FILE)) return fs.readFileSync(TOKEN_FILE, "utf8").trim();
+  const token = Array.from({ length: 32 }, () =>
+    Math.floor(Math.random() * 16).toString(16),
+  ).join("");
+  fs.writeFileSync(TOKEN_FILE, `${token}\n`, "utf8");
+  console.log("Nov BRIDGE_TOKEN je shranjen v bridge/token.txt");
+  console.log(token);
+  return token;
+}
+
+const TOKEN = loadOrCreateToken();
+
+function localSubnets() {
+  const subnets = new Set();
+  const extra = process.env.SUBNET;
+  if (extra) subnets.add(extra.replace(/\.0\/24$/, "").replace(/\.$/, ""));
+  for (const addrs of Object.values(os.networkInterfaces())) {
+    for (const addr of addrs || []) {
+      if (addr.internal) continue;
+      const family = String(addr.family);
+      if (family === "IPv6" || family === "6") continue;
+      const parts = addr.address.split(".");
+      if (parts.length !== 4) continue;
+      if (parts[0] === "169") continue;
+      const privateRange =
+        parts[0] === "10" ||
+        (parts[0] === "192" && parts[1] === "168") ||
+        (parts[0] === "172" && Number(parts[1]) >= 16 && Number(parts[1]) <= 31);
+      if (privateRange) subnets.add(`${parts[0]}.${parts[1]}.${parts[2]}`);
+    }
+  }
+  if (subnets.size === 0) subnets.add("192.168.1");
+  return [...subnets];
 }
 
 async function fetchJson(url, init = {}) {
@@ -33,6 +71,15 @@ async function fetchJson(url, init = {}) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+function kindFromName(name) {
+  const value = String(name).toLowerCase();
+  if (/(gate|fence|ograja|vrata)/.test(value)) return "gate";
+  if (/(plug|socket|vtic)/.test(value)) return "plug";
+  if (/(light|lamp|luc|led|bulb)/.test(value)) return "light";
+  if (/(temp|klima|thermo)/.test(value)) return "thermostat";
+  return "switch";
 }
 
 async function probe(ip) {
@@ -56,8 +103,8 @@ async function probe(ip) {
         ip,
         integration,
         name: String(name),
-        kind: /light|lamp|luc|led/i.test(String(name)) ? "light" : "switch",
-        detail: data.model || data.type || status.Module || integration,
+        kind: kindFromName(name),
+        detail: String(data.model || data.type || status.Module || integration),
       };
     } catch {
       /* next */
@@ -66,18 +113,113 @@ async function probe(ip) {
   return null;
 }
 
-async function scan(subnet = "192.168.1") {
+function ssdpDiscover(ms = 1500) {
+  return new Promise((resolve) => {
+    const socket = dgram.createSocket("udp4");
+    const ips = new Set();
+    const message = Buffer.from(
+      [
+        "M-SEARCH * HTTP/1.1",
+        "HOST: 239.255.255.250:1900",
+        'MAN: "ssdp:discover"',
+        "MX: 1",
+        "ST: ssdp:all",
+        "",
+        "",
+      ].join("\r\n"),
+    );
+    socket.on("message", (msg, rinfo) => {
+      if (rinfo?.address) ips.add(rinfo.address);
+      const location = String(msg).match(/LOCATION:\s*http:\/\/([0-9.]+)/i);
+      if (location) ips.add(location[1]);
+    });
+    socket.on("error", () => {
+      try {
+        socket.close();
+      } catch {
+        /* ignore */
+      }
+      resolve([...ips]);
+    });
+    socket.bind(() => {
+      try {
+        socket.addMembership("239.255.255.250");
+        socket.setBroadcast(true);
+        socket.send(message, 1900, "239.255.255.250");
+      } catch {
+        /* ignoriraj, če omrežje ne dovoli multicast */
+      }
+    });
+    setTimeout(() => {
+      try {
+        socket.close();
+      } catch {
+        /* ignore */
+      }
+      resolve([...ips]);
+    }, ms);
+  });
+}
+
+async function scanSubnets(subnets) {
   const found = [];
-  const batchSize = 32;
-  for (let start = 1; start <= 254; start += batchSize) {
-    const jobs = [];
-    for (let i = start; i < start + batchSize && i <= 254; i += 1) {
-      jobs.push(probe(`${subnet}.${i}`));
+  const seen = new Set();
+  const ssdpIps = await ssdpDiscover();
+  const priority = ssdpIps.filter((ip) => !ip.startsWith("127."));
+  for (const ip of priority) {
+    const item = await probe(ip);
+    if (item && !seen.has(item.ip)) {
+      seen.add(item.ip);
+      found.push(item);
     }
-    const results = await Promise.all(jobs);
-    for (const item of results) if (item) found.push(item);
+  }
+
+  const batchSize = 40;
+  for (const subnet of subnets) {
+    for (let start = 1; start <= 254; start += batchSize) {
+      const jobs = [];
+      for (let i = start; i < start + batchSize && i <= 254; i += 1) {
+        const ip = `${subnet}.${i}`;
+        if (seen.has(ip)) continue;
+        jobs.push(probe(ip));
+      }
+      const results = await Promise.all(jobs);
+      for (const item of results) {
+        if (item && !seen.has(item.ip)) {
+          seen.add(item.ip);
+          found.push(item);
+        }
+      }
+    }
   }
   return found;
+}
+
+const inventory = {
+  scanning: false,
+  devices: [],
+  subnets: localSubnets(),
+  scannedAt: null,
+  error: null,
+};
+
+async function runScan(requestedSubnet) {
+  if (inventory.scanning) return;
+  inventory.scanning = true;
+  inventory.error = null;
+  const subnets = requestedSubnet ? [requestedSubnet] : localSubnets();
+  inventory.subnets = subnets;
+  console.log(`Skeniram podomrežja: ${subnets.join(", ")}`);
+  try {
+    inventory.devices = await scanSubnets(subnets);
+    inventory.scannedAt = new Date().toISOString();
+    console.log(`Najdenih naprav: ${inventory.devices.length}`);
+  } catch (error) {
+    inventory.error = error.message || "Sken ni uspel.";
+    console.error(inventory.error);
+  } finally {
+    inventory.scanning = false;
+  }
 }
 
 async function control(device, on) {
@@ -99,9 +241,9 @@ async function control(device, on) {
     return { on: Boolean(on), reachable: true, lastSeen: new Date().toISOString() };
   }
   if (device.integration === "generic") {
-    const path = on ? device.onPath : device.offPath;
-    if (!path) throw new Error("Manjkata URL-ja.");
-    await fetchJson(path.startsWith("http") ? path : `http://${device.address}${path}`);
+    const pathName = on ? device.onPath : device.offPath;
+    if (!pathName) throw new Error("Manjkata URL-ja.");
+    await fetchJson(pathName.startsWith("http") ? pathName : `http://${device.address}${pathName}`);
     return { on: Boolean(on), reachable: true, lastSeen: new Date().toISOString() };
   }
   throw new Error("Nepodprta naprava.");
@@ -110,7 +252,9 @@ async function control(device, on) {
 async function status(device) {
   if (device.integration === "shelly") {
     try {
-      const gen2 = await fetchJson(`http://${device.address}/rpc/Switch.GetStatus?id=${device.channel ?? 0}`);
+      const gen2 = await fetchJson(
+        `http://${device.address}/rpc/Switch.GetStatus?id=${device.channel ?? 0}`,
+      );
       if (gen2.ok) {
         return { on: Boolean(gen2.data.output), reachable: true, lastSeen: new Date().toISOString() };
       }
@@ -130,14 +274,13 @@ async function status(device) {
 }
 
 function send(res, statusCode, payload) {
-  const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type, x-bridge-token",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   });
-  res.end(body);
+  res.end(JSON.stringify(payload));
 }
 
 function readBody(req) {
@@ -156,6 +299,10 @@ function readBody(req) {
   });
 }
 
+function routePath(url) {
+  return (url || "/").split("?")[0];
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") {
     send(res, 204, {});
@@ -168,23 +315,43 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  const urlPath = routePath(req.url);
   try {
-    if (req.method === "GET" && req.url === "/health") {
-      send(res, 200, { ok: true });
+    if (req.method === "GET" && urlPath === "/health") {
+      send(res, 200, {
+        ok: true,
+        scanning: inventory.scanning,
+        deviceCount: inventory.devices.length,
+        subnets: inventory.subnets,
+        scannedAt: inventory.scannedAt,
+        hostname: os.hostname(),
+      });
       return;
     }
+    if (req.method === "GET" && urlPath === "/inventory") {
+      send(res, 200, inventory);
+      return;
+    }
+
     const body = req.method === "POST" ? await readBody(req) : {};
-    if (req.method === "POST" && req.url === "/scan") {
-      const devices = await scan(body.subnet || "192.168.1");
-      send(res, 200, { devices });
+    if (req.method === "POST" && urlPath === "/scan") {
+      runScan(body.subnet).catch((error) => {
+        inventory.error = error.message;
+        inventory.scanning = false;
+      });
+      send(res, 202, { ok: true, scanning: true, subnets: inventory.subnets });
       return;
     }
-    if (req.method === "POST" && req.url === "/control") {
+    if (req.method === "POST" && urlPath === "/inventory") {
+      send(res, 200, inventory);
+      return;
+    }
+    if (req.method === "POST" && urlPath === "/control") {
       const state = await control(body.device, body.on);
       send(res, 200, { state });
       return;
     }
-    if (req.method === "POST" && req.url === "/status") {
+    if (req.method === "POST" && urlPath === "/status") {
       const state = await status(body.device);
       send(res, 200, { state });
       return;
@@ -196,5 +363,8 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`SmartHome most posluša na :${PORT}`);
+  console.log(`SmartHome most posluša na http://0.0.0.0:${PORT}`);
+  console.log(`LAN podomrežja: ${localSubnets().join(", ") || "neznano"}`);
+  runScan();
+  setInterval(() => runScan(), SCAN_EVERY_MS);
 });

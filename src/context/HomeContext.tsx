@@ -8,7 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { bridgeScan, readDevice, scanSubnet, setDevicePower } from "@/lib/devices";
+import { bridgeHealth, bridgeInventory, bridgeScan, readDevice, scanSubnet, setDevicePower } from "@/lib/devices";
 import {
   createDefaultState,
   hashPin,
@@ -54,6 +54,9 @@ interface HomeContextValue {
   scanLocal: () => Promise<void>;
   scanViaBridge: () => Promise<void>;
   abortScan: () => void;
+  testBridge: () => Promise<{ hostname: string; deviceCount: number; subnets: string[]; scannedAt: string | null }>;
+  loadBridgeInventory: () => Promise<void>;
+  addDiscovered: (items: DiscoveredDevice[]) => number;
   importHa: () => Promise<number>;
   resetDemo: () => void;
   notice: string | null;
@@ -334,6 +337,52 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.settings]);
 
+  const testBridge = useCallback(async () => {
+    const data = await bridgeHealth(state.settings);
+    return {
+      hostname: data.hostname,
+      deviceCount: data.deviceCount,
+      subnets: data.subnets || [],
+      scannedAt: data.scannedAt,
+    };
+  }, [state.settings]);
+
+  const loadBridgeInventory = useCallback(async () => {
+    if (!state.settings.bridgeUrl || !state.settings.bridgeToken) return;
+    const data = await bridgeInventory(state.settings);
+    setDiscovered(data.devices || []);
+    if (data.scanning) setScanning(true);
+  }, [state.settings]);
+
+  const addDiscovered = useCallback(
+    (items: DiscoveredDevice[]) => {
+      const existing = new Set(state.devices.map((device) => device.address));
+      const extra = items.filter((item) => !existing.has(item.ip));
+      if (extra.length === 0) return 0;
+      patchState((current) => {
+        const have = new Set(current.devices.map((device) => device.address));
+        const additions = extra
+          .filter((item) => !have.has(item.ip))
+          .map((item) => ({
+            id: uid("dev"),
+            name: item.name,
+            roomId:
+              item.kind === "gate"
+                ? current.rooms.find((room) => room.id === "outdoor")?.id || current.rooms[0]?.id || "living"
+                : current.rooms[0]?.id || "living",
+            kind: item.kind,
+            integration: item.integration,
+            address: item.ip,
+            pinned: item.kind === "gate",
+            state: { on: false, reachable: true },
+          }));
+        return { ...current, devices: [...current.devices, ...additions] };
+      });
+      return extra.length;
+    },
+    [patchState, state.devices],
+  );
+
   const importHa = useCallback(async () => {
     const response = await fetch("/api/ha/entities", {
       method: "POST",
@@ -431,6 +480,9 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       scanLocal,
       scanViaBridge,
       abortScan,
+      testBridge,
+      loadBridgeInventory,
+      addDiscovered,
       importHa,
       resetDemo,
       notice,
@@ -440,6 +492,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     [
       abortScan,
       addDevice,
+      addDiscovered,
       addRoom,
       addScene,
       addWidget,
@@ -448,6 +501,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       error,
       importHa,
       importState,
+      loadBridgeInventory,
       lock,
       moveWidget,
       notice,
@@ -463,6 +517,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       scanning,
       setPin,
       state,
+      testBridge,
       toggleDevice,
       unlocked,
       unlock,

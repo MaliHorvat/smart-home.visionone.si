@@ -4,10 +4,11 @@ import { FormEvent, useState } from "react";
 import { useHome } from "@/context/HomeContext";
 
 export default function SettingsPage() {
-  const { state, updateSettings, setPin, addRoom, resetDemo, importState } = useHome();
+  const { state, updateSettings, setPin, addRoom, resetDemo, importState, testBridge } = useHome();
   const [pin, setPinValue] = useState("");
   const [roomName, setRoomName] = useState("");
   const [saved, setSaved] = useState("");
+  const [bridgeStatus, setBridgeStatus] = useState("");
 
   async function savePin(event: FormEvent) {
     event.preventDefault();
@@ -71,22 +72,60 @@ export default function SettingsPage() {
         </form>
 
         <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
-          <h2 className="text-xl">Lokalni most</h2>
-          <p className="mt-2 text-sm text-sand-100/60">
-            HTTPS naslov mostu, ki teče doma in vidi WiFi naprave.
-          </p>
+          <h2 className="text-xl">Domači strežnik (most)</h2>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-sand-100/70">
+            <li>Na strežniku skopiraj ta projekt in zaženi <span className="text-sand-400">npm run bridge:win</span> (Windows) ali <span className="text-sand-400">npm run bridge</span>.</li>
+            <li>Žeton se shrani v <span className="text-sand-400">bridge/token.txt</span>. Prilepi ga spodaj.</li>
+            <li>
+              Most mora biti dosegljiv prek HTTPS. Najenostavneje: na strežniku
+              <span className="text-sand-400"> cloudflared tunnel --url http://localhost:8787</span>
+              in dobljeni naslov vpiši tu.
+            </li>
+          </ol>
           <input
             value={state.settings.bridgeUrl}
             onChange={(event) => updateSettings({ bridgeUrl: event.target.value })}
-            placeholder="https://smarthome-bridge.tvoja-domena.si"
+            placeholder="https://xxxx.trycloudflare.com"
             className="mt-4 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
           />
           <input
             value={state.settings.bridgeToken}
             onChange={(event) => updateSettings({ bridgeToken: event.target.value })}
-            placeholder="BRIDGE_TOKEN"
+            placeholder="Žeton iz token.txt"
             className="mt-3 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
           />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const info = await testBridge();
+                  setBridgeStatus(
+                    `Povezano z ${info.hostname}. Najdenih ${info.deviceCount} naprav. Omrežja: ${info.subnets.join(", ") || "—"}.`,
+                  );
+                } catch (err) {
+                  setBridgeStatus(err instanceof Error ? err.message : "Most ni dosegljiv.");
+                }
+              }}
+              disabled={!state.settings.bridgeUrl || !state.settings.bridgeToken}
+              className="rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-40"
+            >
+              Preizkusi povezavo
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const bytes = new Uint8Array(16);
+                crypto.getRandomValues(bytes);
+                const token = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+                updateSettings({ bridgeToken: token });
+              }}
+              className="rounded-2xl bg-white/10 px-4 py-3"
+            >
+              Ustvari žeton
+            </button>
+          </div>
+          {bridgeStatus ? <p className="mt-3 text-sm text-sand-100/75">{bridgeStatus}</p> : null}
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">

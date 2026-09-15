@@ -1,0 +1,12 @@
+services:
+  smarthome-bridge:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: node bridge/server.mjs
+    environment:
+      PORT: "8787"
+      BRIDGE_TOKEN: ${BRIDGE_TOKEN:-}
+    network_mode: host
+    restart: unless-stopped

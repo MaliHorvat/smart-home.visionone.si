@@ -30,22 +30,26 @@ npm run dev
 
 Odpri [http://localhost:3000](http://localhost:3000).
 
-## Lokalni most
+## Domači strežnik (most)
 
-Na računalniku, ki je vedno v istem WiFi kot naprave:
+Na vedno prižganem računalniku v istem WiFi kot naprave:
 
 ```bash
-set BRIDGE_TOKEN=dolg-skrivni-niz
-npm run bridge
+npm install
+npm run bridge:win
 ```
 
-Most posluša na vratih `8787`. Za HTTPS iz interneta uporabi Cloudflare Tunnel:
+Na Linuxu: `npm run bridge` ali `docker compose up -d` (zahteva `network_mode: host`).
+
+Most sam poišče LAN podomrežja, skenira Shelly/Tasmota, žeton shrani v `bridge/token.txt`.
+
+Ker je spletna aplikacija na Vercelu (HTTPS), most izpostaviš npr. s Cloudflare Tunnel:
 
 ```bash
 cloudflared tunnel --url http://localhost:8787
 ```
 
-URL tunela in isti `BRIDGE_TOKEN` vpiši v Nastavitve aplikacije.
+V Nastavitvah vpiši HTTPS naslov tunela in žeton, nato **Preizkusi povezavo**. Na strani Odkrivanje pritisni **Naj strežnik poišče naprave**.
 
 ## GitHub
 

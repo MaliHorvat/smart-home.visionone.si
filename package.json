@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "bridge": "node bridge/server.mjs"
+    "bridge": "node bridge/server.mjs",
+    "bridge:win": "powershell -ExecutionPolicy Bypass -File bridge/start.ps1"
   },
   "dependencies": {
     "clsx": "^2.1.1",

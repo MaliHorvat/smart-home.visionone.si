@@ -155,18 +155,72 @@ export async function scanSubnet(
 
 export async function bridgeScan(settings: Settings) {
   if (!settings.bridgeUrl) throw new Error("Most ni nastavljen.");
-  const response = await fetch("/api/bridge/scan", {
+  const payload = {
+    bridgeUrl: settings.bridgeUrl,
+    token: settings.bridgeToken,
+    subnet: settings.subnet,
+  };
+  const start = await fetch("/api/bridge/scan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const startData = await start.json();
+  if (!start.ok) throw new Error(startData.error || "Skeniranje prek mostu ni uspelo.");
+
+  for (let i = 0; i < 40; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const response = await fetch("/api/bridge/inventory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Most ni dosegljiv.");
+    if (!data.scanning) return (data.devices || []) as DiscoveredDevice[];
+  }
+  throw new Error("Sken traja predolgo. Poskusi znova čez minuto.");
+}
+
+export async function bridgeHealth(settings: Settings) {
+  const response = await fetch("/api/bridge/health", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       bridgeUrl: settings.bridgeUrl,
       token: settings.bridgeToken,
-      subnet: settings.subnet,
     }),
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Skeniranje prek mostu ni uspelo.");
-  return data.devices as DiscoveredDevice[];
+  if (!response.ok) throw new Error(data.error || "Most ni dosegljiv.");
+  return data as {
+    ok: boolean;
+    scanning: boolean;
+    deviceCount: number;
+    subnets: string[];
+    scannedAt: string | null;
+    hostname: string;
+  };
+}
+
+export async function bridgeInventory(settings: Settings) {
+  const response = await fetch("/api/bridge/inventory", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      bridgeUrl: settings.bridgeUrl,
+      token: settings.bridgeToken,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Most ni dosegljiv.");
+  return data as {
+    scanning: boolean;
+    devices: DiscoveredDevice[];
+    subnets: string[];
+    scannedAt: string | null;
+    error: string | null;
+  };
 }
 
 export async function readDevice(device: Device, settings: Settings) {
