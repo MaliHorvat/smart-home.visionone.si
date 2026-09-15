@@ -16,6 +16,7 @@ import {
   saveState,
   uid,
 } from "@/lib/storage";
+import { buzz } from "@/lib/utils";
 import type {
   Device,
   DiscoveredDevice,
@@ -43,7 +44,7 @@ interface HomeContextValue {
   addDevice: (device: Omit<Device, "id" | "state"> & { state?: Device["state"] }) => void;
   updateDevice: (id: string, patch: Partial<Device>) => void;
   removeDevice: (id: string) => void;
-  toggleDevice: (id: string, on?: boolean) => Promise<void>;
+  toggleDevice: (id: string, on?: boolean, silent?: boolean) => Promise<void>;
   refreshDevice: (id: string) => Promise<void>;
   addScene: (scene: Omit<Scene, "id">) => void;
   runScene: (id: string) => Promise<void>;
@@ -55,6 +56,9 @@ interface HomeContextValue {
   abortScan: () => void;
   importHa: () => Promise<number>;
   resetDemo: () => void;
+  notice: string | null;
+  allOff: () => Promise<void>;
+  importState: (next: HomeState) => void;
 }
 
 const HomeContext = createContext<HomeContextValue | null>(null);
@@ -68,6 +72,14 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const [scanProgress, setScanProgress] = useState({ done: 0, total: 254 });
   const [discovered, setDiscovered] = useState<DiscoveredDevice[]>([]);
   const [abort, setAbort] = useState<AbortController | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const flash = useCallback((message: string) => {
+    setNotice(message);
+    window.setTimeout(() => {
+      setNotice((current) => (current === message ? null : current));
+    }, 1600);
+  }, []);
 
   useEffect(() => {
     const loaded = loadState();
@@ -177,12 +189,27 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   );
 
   const toggleDevice = useCallback(
-    async (id: string, on?: boolean) => {
+    async (id: string, on?: boolean, silent?: boolean) => {
       const device = state.devices.find((item) => item.id === id);
       if (!device) return;
       const next = typeof on === "boolean" ? on : !device.state.on;
       setError(null);
-      updateDevice(id, { state: { ...device.state, on: next } });
+      if (!silent) buzz();
+      updateDevice(id, {
+        lastUsed: Date.now(),
+        state: { ...device.state, on: next },
+      });
+      if (!silent) {
+        const label =
+          device.kind === "gate"
+            ? next
+              ? `${device.name} odprta`
+              : `${device.name} zaprta`
+            : next
+              ? `${device.name} vklopljena`
+              : `${device.name} izklopljena`;
+        flash(label);
+      }
       try {
         const nextState = await setDevicePower(device, next, state.settings);
         updateDevice(id, { state: nextState });
@@ -191,7 +218,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         setError(err instanceof Error ? err.message : "Ukaza ni bilo mogoče izvesti.");
       }
     },
-    [state.devices, state.settings, updateDevice],
+    [flash, state.devices, state.settings, updateDevice],
   );
 
   const refreshDevice = useCallback(
@@ -223,10 +250,12 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       const scene = state.scenes.find((item) => item.id === id);
       if (!scene) return;
       for (const action of scene.actions) {
-        await toggleDevice(action.deviceId, action.on);
+        await toggleDevice(action.deviceId, action.on, true);
       }
+      buzz(20);
+      flash(`Prizor ${scene.name}`);
     },
-    [state.scenes, toggleDevice],
+    [flash, state.scenes, toggleDevice],
   );
 
   const addWidget = useCallback(
@@ -351,6 +380,30 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     setDiscovered([]);
   }, [state.settings]);
 
+  const allOff = useCallback(async () => {
+    const targets = state.devices.filter(
+      (device) =>
+        device.state.on &&
+        device.kind !== "sensor" &&
+        device.kind !== "thermostat" &&
+        device.kind !== "gate",
+    );
+    for (const device of targets) {
+      await toggleDevice(device.id, false, true);
+    }
+    buzz(20);
+    flash("Luči in vtičnice izklopljene");
+  }, [flash, state.devices, toggleDevice]);
+
+  const importState = useCallback((next: HomeState) => {
+    setState({
+      ...createDefaultState(),
+      ...next,
+      settings: { ...createDefaultState().settings, ...next.settings },
+    });
+    flash("Nastavitve so uvožene");
+  }, [flash]);
+
   const value = useMemo(
     () => ({
       ready,
@@ -380,6 +433,9 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       abortScan,
       importHa,
       resetDemo,
+      notice,
+      allOff,
+      importState,
     }),
     [
       abortScan,
@@ -387,11 +443,14 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       addRoom,
       addScene,
       addWidget,
+      allOff,
       discovered,
       error,
       importHa,
+      importState,
       lock,
       moveWidget,
+      notice,
       ready,
       refreshDevice,
       removeDevice,

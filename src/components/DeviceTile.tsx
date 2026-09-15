@@ -100,3 +100,25 @@ export function SceneTile({ scene, onRun }: { scene: Scene; onRun: () => void })
     </button>
   );
 }
+
+export function ActionTile({
+  label,
+  detail,
+  onClick,
+}: {
+  label: string;
+  detail: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-white/20 bg-white/5 px-1.5 text-center text-sand-100/80 transition active:scale-95"
+    >
+      <span className="text-[22px] leading-none text-sand-400">{label === "Dodaj" ? "+" : "⏻"}</span>
+      <span className="line-clamp-2 w-full text-[11px] font-medium leading-tight">{label}</span>
+      <span className="text-[10px] uppercase tracking-wide text-sand-100/45">{detail}</span>
+    </button>
+  );
+}

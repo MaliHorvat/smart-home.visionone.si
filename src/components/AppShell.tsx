@@ -13,6 +13,7 @@ import {
 import { useHome } from "@/context/HomeContext";
 import { cn } from "@/lib/utils";
 import { LockScreen } from "./LockScreen";
+import { Toast } from "./Toast";
 
 const NAV = [
   { href: "/", label: "Plošča", icon: LayoutDashboard },
@@ -93,6 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           {children}
         </main>
+        <Toast />
         <nav className="sticky bottom-0 grid grid-cols-5 border-t border-white/5 bg-ink-950/90 px-1 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
           {NAV.map((item) => {
             const Icon = item.icon;

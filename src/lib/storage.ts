@@ -133,6 +133,7 @@ const defaultSettings: Settings = {
   haToken: "",
   bridgeUrl: "",
   bridgeToken: "",
+  tileColumns: 4,
 };
 
 export function createDefaultState(): HomeState {
@@ -169,7 +170,11 @@ export function loadState(): HomeState {
       ...parsed,
       version: 2,
       devices,
-      settings: { ...defaultSettings, ...parsed.settings },
+      settings: {
+        ...defaultSettings,
+        ...parsed.settings,
+        tileColumns: parsed.settings?.tileColumns === 3 ? 3 : 4,
+      },
     };
   } catch {
     return createDefaultState();

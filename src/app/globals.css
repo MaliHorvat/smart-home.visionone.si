@@ -37,6 +37,18 @@ button {
   gap: 0.5rem;
 }
 
+.grid-tiles-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .grid-tiles,
+  .grid-tiles-3 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+}
+
 @media (min-width: 640px) {
   .grid-tiles {
     grid-template-columns: repeat(6, minmax(0, 1fr));

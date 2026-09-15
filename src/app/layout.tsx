@@ -13,11 +13,17 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#070b12",
 };
 
 export const metadata: Metadata = {
   title: "Pametni dom",
   description: "Lastna nadzorna plošča za pametne inštalacije, vklop in izklop naprav.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Pametni dom",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

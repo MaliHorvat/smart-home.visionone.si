@@ -28,3 +28,17 @@ export function isLocalHost() {
   if (typeof window === "undefined") return false;
   return ["localhost", "127.0.0.1"].includes(window.location.hostname);
 }
+
+export function buzz(ms = 14) {
+  try {
+    navigator.vibrate?.(ms);
+  } catch {
+    /* ni podprto */
+  }
+}
+
+export function isStandaloneApp() {
+  if (typeof window === "undefined") return false;
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  return window.matchMedia("(display-mode: standalone)").matches || Boolean(nav.standalone);
+}

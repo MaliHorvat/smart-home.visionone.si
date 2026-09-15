@@ -40,6 +40,7 @@ export interface Device {
   onPath?: string;
   offPath?: string;
   pinned?: boolean;
+  lastUsed?: number;
   state: DeviceState;
 }
 
@@ -79,6 +80,7 @@ export interface Settings {
   haToken: string;
   bridgeUrl: string;
   bridgeToken: string;
+  tileColumns: 3 | 4;
 }
 
 export interface HomeState {

@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useHome } from "@/context/HomeContext";
 
 export default function SettingsPage() {
-  const { state, updateSettings, setPin, addRoom, resetDemo } = useHome();
+  const { state, updateSettings, setPin, addRoom, resetDemo, importState } = useHome();
   const [pin, setPinValue] = useState("");
   const [roomName, setRoomName] = useState("");
   const [saved, setSaved] = useState("");
@@ -30,6 +30,27 @@ export default function SettingsPage() {
             className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
           />
         </label>
+
+        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+          <h2 className="text-xl">Velikost kvadratkov</h2>
+          <p className="mt-2 text-sm text-sand-100/60">Na telefonu. 3 so lažje za zadeti v avtu.</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => updateSettings({ tileColumns: 4 })}
+              className={`rounded-2xl px-4 py-3 ${state.settings.tileColumns !== 3 ? "bg-glow-500 text-ink-950" : "bg-white/10"}`}
+            >
+              4 v vrsti
+            </button>
+            <button
+              type="button"
+              onClick={() => updateSettings({ tileColumns: 3 })}
+              className={`rounded-2xl px-4 py-3 ${state.settings.tileColumns === 3 ? "bg-glow-500 text-ink-950" : "bg-white/10"}`}
+            >
+              3 v vrsti
+            </button>
+          </div>
+        </div>
 
         <form onSubmit={savePin} className="rounded-3xl border border-white/10 bg-ink-800 p-5">
           <h2 className="text-xl">PIN zaklep</h2>
@@ -114,6 +135,47 @@ export default function SettingsPage() {
             </button>
           </div>
         </form>
+
+        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+          <h2 className="text-xl">Varnostna kopija</h2>
+          <p className="mt-2 text-sm text-sand-100/60">
+            Shrani ploščo v datoteko ali jo naloži na nov telefon.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(state, null, 2)], {
+                  type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "smarthome-backup.json";
+                link.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="rounded-2xl bg-white/10 px-4 py-3"
+            >
+              Izvozi
+            </button>
+            <label className="cursor-pointer rounded-2xl bg-white/10 px-4 py-3">
+              Uvozi
+              <input
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  const text = await file.text();
+                  importState(JSON.parse(text));
+                  event.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+        </div>
 
         <button
           type="button"
