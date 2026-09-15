@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { DEVICE_ICON_OPTIONS, DeviceIcon } from "@/components/DeviceIcon";
 import { useHome } from "@/context/HomeContext";
+import { normalizeAutoOffSeconds } from "@/lib/storage";
 import type { Device } from "@/lib/types";
 
 export function EditDeviceModal({
@@ -16,10 +17,20 @@ export function EditDeviceModal({
   const [name, setName] = useState(device.name);
   const [icon, setIcon] = useState(device.icon || device.kind);
   const [roomId, setRoomId] = useState(device.roomId);
+  const [autoOff, setAutoOff] = useState(
+    device.autoOffSeconds ? String(device.autoOffSeconds) : "",
+  );
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
-    updateDevice(device.id, { name: name.trim() || device.name, icon, roomId });
+    const autoOffSeconds = normalizeAutoOffSeconds(autoOff);
+    updateDevice(device.id, {
+      name: name.trim() || device.name,
+      icon,
+      roomId,
+      autoOffSeconds,
+      ...(autoOffSeconds > 0 && device.state.on ? { lastUsed: Date.now() } : {}),
+    });
     onClose();
   }
 
@@ -27,7 +38,7 @@ export function EditDeviceModal({
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 px-4">
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-lg rounded-3xl border border-white/10 bg-ink-800 p-6 shadow-panel"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/10 bg-ink-800 p-6 shadow-panel"
       >
         <h2 className="text-2xl">Uredi napravo</h2>
         <label className="mt-5 grid gap-2 text-sm">
@@ -57,6 +68,19 @@ export function EditDeviceModal({
             </button>
           ))}
         </div>
+        <label className="mt-4 grid gap-2 text-sm">
+          Na plošči ugašeno po (sekunde)
+          <input
+            inputMode="numeric"
+            value={autoOff}
+            onChange={(event) => setAutoOff(event.target.value.replace(/[^\d]/g, ""))}
+            placeholder="npr. 5 — prazno, če ostane vklopljen"
+            className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+          />
+        </label>
+        <p className="mt-2 text-xs leading-5 text-sand-100/50">
+          Če se rele sam izklopi, vpiši sekunde. Kvadratek potem ne ostane prižgan.
+        </p>
         <label className="mt-4 grid gap-2 text-sm">
           Prostor
           <select

@@ -115,7 +115,7 @@ export default function DashboardPage() {
 
       <p className="mt-3 text-center text-[10px] text-sand-100/40">
         {editing
-          ? "Tapni kvadratek za ime in ikono."
+          ? "Tapni kvadratek za ime, ikono in timer."
           : "Drži kvadratek, da ga pripneš na vrh — npr. ograja iz avta."}
       </p>
 

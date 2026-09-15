@@ -156,11 +156,18 @@ export function uid(prefix = "id"): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+export function normalizeAutoOffSeconds(value: unknown) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) return 0;
+  return Math.min(86400, Math.round(seconds));
+}
+
 export function normalizeState(parsed: HomeState): HomeState {
   const devices: Device[] = (parsed.devices || []).map((device) => ({
     ...device,
     pinned: Boolean(device.pinned),
     icon: device.icon || device.kind,
+    autoOffSeconds: normalizeAutoOffSeconds(device.autoOffSeconds),
   }));
   if (!devices.some((device) => device.id === "demo-gate" || device.kind === "gate")) {
     devices.unshift(demoGate);

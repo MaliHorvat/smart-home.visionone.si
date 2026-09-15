@@ -14,6 +14,7 @@ import {
   createDefaultState,
   hashPin,
   loadState,
+  normalizeAutoOffSeconds,
   normalizeState,
   preferCloudState,
   realDeviceCount,
@@ -47,7 +48,7 @@ interface HomeContextValue {
   setPin: (pin: string) => Promise<void>;
   addRoom: (name: string) => void;
   addDevice: (device: Omit<Device, "id" | "state"> & { state?: Device["state"] }) => void;
-  updateDevice: (id: string, patch: Partial<Device>) => void;
+  updateDevice: (id: string, patch: Partial<Omit<Device, "state">> & { state?: Partial<Device["state"]> }) => void;
   removeDevice: (id: string) => void;
   toggleDevice: (id: string, on?: boolean, silent?: boolean) => Promise<void>;
   refreshDevice: (id: string) => Promise<void>;
@@ -88,6 +89,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const skipCloudUpload = useRef(true);
   const cloudTimer = useRef<number | null>(null);
+  const autoOffTimers = useRef<Record<string, { handle: number; token: string }>>({});
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -243,7 +245,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateDevice = useCallback(
-    (id: string, patch: Partial<Device>) => {
+    (id: string, patch: Partial<Omit<Device, "state">> & { state?: Partial<Device["state"]> }) => {
       patchState((current) => ({
         ...current,
         devices: current.devices.map((device) =>
@@ -253,6 +255,57 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     },
     [patchState],
   );
+
+  useEffect(() => {
+    if (!ready) return;
+    const now = Date.now();
+    const seen = new Set<string>();
+    for (const device of state.devices) {
+      seen.add(device.id);
+      const seconds = normalizeAutoOffSeconds(device.autoOffSeconds);
+      const token = `${device.lastUsed || 0}:${seconds}:${device.state.on ? 1 : 0}`;
+      const existing = autoOffTimers.current[device.id];
+      if (seconds <= 0 || !device.state.on || device.kind === "sensor") {
+        if (existing) {
+          window.clearTimeout(existing.handle);
+          delete autoOffTimers.current[device.id];
+        }
+        continue;
+      }
+      const remaining = (device.lastUsed || now) + seconds * 1000 - now;
+      if (remaining <= 50) {
+        if (existing) {
+          window.clearTimeout(existing.handle);
+          delete autoOffTimers.current[device.id];
+        }
+        updateDevice(device.id, { state: { ...device.state, on: false } });
+        continue;
+      }
+      if (existing?.token === token) continue;
+      if (existing) window.clearTimeout(existing.handle);
+      autoOffTimers.current[device.id] = {
+        token,
+        handle: window.setTimeout(() => {
+          delete autoOffTimers.current[device.id];
+          updateDevice(device.id, { state: { on: false } });
+        }, remaining),
+      };
+    }
+    for (const id of Object.keys(autoOffTimers.current)) {
+      if (seen.has(id)) continue;
+      window.clearTimeout(autoOffTimers.current[id].handle);
+      delete autoOffTimers.current[id];
+    }
+  }, [ready, state.devices, updateDevice]);
+
+  useEffect(() => {
+    return () => {
+      for (const timer of Object.values(autoOffTimers.current)) {
+        window.clearTimeout(timer.handle);
+      }
+      autoOffTimers.current = {};
+    };
+  }, []);
 
   const removeDevice = useCallback(
     (id: string) => {
@@ -274,10 +327,12 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       const device = state.devices.find((item) => item.id === id);
       if (!device) return;
       const next = typeof on === "boolean" ? on : !device.state.on;
+      const startedAt = Date.now();
+      const autoOffSeconds = normalizeAutoOffSeconds(device.autoOffSeconds);
       setError(null);
       if (!silent) buzz();
       updateDevice(id, {
-        lastUsed: Date.now(),
+        lastUsed: startedAt,
         state: { ...device.state, on: next },
       });
       if (!silent) {
@@ -293,7 +348,12 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         const nextState = await setDevicePower(device, next, state.settings);
-        updateDevice(id, { state: nextState });
+        if (next && autoOffSeconds > 0) {
+          const stillOn = Date.now() < startedAt + autoOffSeconds * 1000;
+          updateDevice(id, { lastUsed: startedAt, state: { ...nextState, on: stillOn } });
+        } else {
+          updateDevice(id, { state: nextState });
+        }
       } catch (err) {
         updateDevice(id, { state: device.state });
         setError(err instanceof Error ? err.message : "Ukaza ni bilo mogoče izvesti.");
@@ -308,7 +368,12 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       if (!device) return;
       try {
         const nextState = await readDevice(device, state.settings);
-        updateDevice(id, { state: nextState });
+        const autoOffSeconds = normalizeAutoOffSeconds(device.autoOffSeconds);
+        const expired =
+          autoOffSeconds > 0 &&
+          Boolean(device.lastUsed) &&
+          Date.now() >= (device.lastUsed || 0) + autoOffSeconds * 1000;
+        updateDevice(id, { state: expired ? { ...nextState, on: false } : nextState });
       } catch {
         updateDevice(id, { state: { ...device.state, reachable: false } });
       }

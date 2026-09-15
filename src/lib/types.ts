@@ -43,6 +43,7 @@ export interface Device {
   pinned?: boolean;
   lastUsed?: number;
   icon?: string;
+  autoOffSeconds?: number;
   state: DeviceState;
 }
 
