@@ -285,6 +285,23 @@ export async function readDevice(device: Device, settings: Settings) {
     return data.state;
   }
 
+  if (device.integration === "tuya") {
+    const response = await fetch("/api/tuya/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: settings.tuyaClientId,
+        secret: settings.tuyaSecret,
+        region: settings.tuyaRegion,
+        deviceId: device.address,
+        code: device.entityId || "switch_1",
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Tuya ni dosegljiv.");
+    return data.state;
+  }
+
   return { ...device.state, reachable: false };
 }
 
@@ -334,6 +351,24 @@ export async function setDevicePower(device: Device, on: boolean, settings: Sett
     if (!path) throw new Error("Manjkata URL-ja za vklop/izklop.");
     await fetchJson(path.startsWith("http") ? path : `http://${device.address}${path}`);
     return { ...device.state, on, reachable: true, lastSeen: new Date().toISOString() };
+  }
+
+  if (device.integration === "tuya") {
+    const response = await fetch("/api/tuya/control", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: settings.tuyaClientId,
+        secret: settings.tuyaSecret,
+        region: settings.tuyaRegion,
+        deviceId: device.address,
+        code: device.entityId || "switch_1",
+        on,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Tuya ukaza ni sprejel.");
+    return data.state;
   }
 
   if (device.integration === "homeassistant") {

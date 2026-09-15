@@ -13,7 +13,8 @@ export type Integration =
   | "tasmota"
   | "homeassistant"
   | "generic"
-  | "bridge";
+  | "bridge"
+  | "tuya";
 
 export type WidgetSize = "sm" | "md" | "lg";
 export type WidgetType = "device" | "scene" | "room" | "clock" | "status";
@@ -81,6 +82,9 @@ export interface Settings {
   bridgeUrl: string;
   bridgeToken: string;
   tileColumns: 3 | 4;
+  tuyaClientId: string;
+  tuyaSecret: string;
+  tuyaRegion: string;
 }
 
 export interface HomeState {

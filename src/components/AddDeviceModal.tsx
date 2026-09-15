@@ -29,7 +29,8 @@ export function AddDeviceModal({
       integration,
       kind,
       roomId,
-      entityId: integration === "homeassistant" ? address : undefined,
+      entityId:
+        integration === "homeassistant" || integration === "tuya" ? address : undefined,
       onPath: onPath || undefined,
       offPath: offPath || undefined,
       pinned,
@@ -64,18 +65,29 @@ export function AddDeviceModal({
             >
               <option value="shelly">Shelly</option>
               <option value="tasmota">Tasmota</option>
+              <option value="tuya">Tuya / Smart Life</option>
               <option value="homeassistant">Home Assistant</option>
               <option value="generic">Generic HTTP</option>
               <option value="demo">Demo</option>
             </select>
           </label>
           <label className="grid gap-2 text-sm">
-            {integration === "homeassistant" ? "Entity ID" : "IP / naslov"}
+            {integration === "homeassistant"
+              ? "Entity ID"
+              : integration === "tuya"
+                ? "Tuya Device ID"
+                : "IP / naslov"}
             <input
               required
               value={address}
               onChange={(event) => setAddress(event.target.value)}
-              placeholder={integration === "homeassistant" ? "light.dnevna" : "192.168.1.50"}
+              placeholder={
+                integration === "homeassistant"
+                  ? "light.dnevna"
+                  : integration === "tuya"
+                    ? "bfxxxxxxxx"
+                    : "192.168.1.50"
+              }
               className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
             />
           </label>

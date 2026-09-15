@@ -5,7 +5,8 @@ Lastna spletna nadzorna plošča za pametne inštalacije: odkrivanje naprav, vkl
 ## Kaj zmore
 
 - Prilagodljiv dashboard (ploščice za naprave, prostore, prizore, uro)
-- Ročno dodajanje naprav (Shelly, Tasmota, generic HTTP, demo)
+- Ročno dodajanje naprav (Shelly, Tasmota, Tuya/Smart Life, generic HTTP, demo)
+- Uvoz Tuya / Smart Life relejev prek Tuya Cloud (iot.tuya.com)
 - Sken lokalnega WiFi omrežja za Shelly in Tasmota
 - Uvoz entitet iz Home Assistant
 - Lokalni most za krmiljenje LAN naprav, ko je aplikacija na Vercelu (HTTPS)

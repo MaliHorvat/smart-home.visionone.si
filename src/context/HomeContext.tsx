@@ -58,6 +58,7 @@ interface HomeContextValue {
   loadBridgeInventory: () => Promise<void>;
   addDiscovered: (items: DiscoveredDevice[]) => number;
   importHa: () => Promise<number>;
+  importTuya: () => Promise<number>;
   resetDemo: () => void;
   notice: string | null;
   allOff: () => Promise<void>;
@@ -422,6 +423,55 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     return imported.length;
   }, [patchState, state.devices, state.settings.haToken, state.settings.haUrl]);
 
+  const importTuya = useCallback(async () => {
+    const response = await fetch("/api/tuya/devices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: state.settings.tuyaClientId,
+        secret: state.settings.tuyaSecret,
+        region: state.settings.tuyaRegion,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Tuya uvoz ni uspel.");
+    const existing = new Set(state.devices.map((device) => device.address));
+    const imported = (
+      data.devices as Array<{
+        id: string;
+        name: string;
+        kind: Device["kind"];
+        code: string;
+        on: boolean;
+        reachable: boolean;
+      }>
+    ).filter((item) => !existing.has(item.id));
+
+    patchState((current) => ({
+      ...current,
+      devices: [
+        ...current.devices,
+        ...imported.map((item) => ({
+          id: uid("tuya"),
+          name: item.name,
+          roomId: current.rooms[0]?.id || "living",
+          kind: item.kind,
+          integration: "tuya" as const,
+          address: item.id,
+          entityId: item.code,
+          state: { on: item.on, reachable: item.reachable },
+        })),
+      ],
+    }));
+    return imported.length;
+  }, [
+    patchState,
+    state.devices,
+    state.settings.tuyaClientId,
+    state.settings.tuyaRegion,
+    state.settings.tuyaSecret,
+  ]);
+
   const resetDemo = useCallback(() => {
     const next = createDefaultState();
     next.settings = state.settings;
@@ -484,6 +534,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       loadBridgeInventory,
       addDiscovered,
       importHa,
+      importTuya,
       resetDemo,
       notice,
       allOff,
@@ -500,6 +551,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       discovered,
       error,
       importHa,
+      importTuya,
       importState,
       loadBridgeInventory,
       lock,

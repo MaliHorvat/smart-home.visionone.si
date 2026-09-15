@@ -19,6 +19,7 @@ export const INTEGRATION_LABELS: Record<Device["integration"], string> = {
   homeassistant: "Home Assistant",
   generic: "HTTP",
   bridge: "Lokalni most",
+  tuya: "Tuya",
 };
 
 const defaultRooms: Room[] = [
@@ -134,6 +135,9 @@ const defaultSettings: Settings = {
   bridgeUrl: "",
   bridgeToken: "",
   tileColumns: 4,
+  tuyaClientId: "",
+  tuyaSecret: "",
+  tuyaRegion: "eu",
 };
 
 export function createDefaultState(): HomeState {

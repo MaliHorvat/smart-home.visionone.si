@@ -26,6 +26,7 @@ export default function SettingsPage() {
   const [roomName, setRoomName] = useState("");
   const [saved, setSaved] = useState("");
   const [bridgeStatus, setBridgeStatus] = useState("");
+  const [tuyaStatus, setTuyaStatus] = useState("");
 
   async function savePin(event: FormEvent) {
     event.preventDefault();
@@ -136,6 +137,81 @@ export default function SettingsPage() {
             </button>
           </div>
           {bridgeStatus ? <p className="mt-3 text-sm text-sand-100/75">{bridgeStatus}</p> : null}
+        </div>
+
+        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+          <h2 className="text-xl">Tuya / Smart Life</h2>
+          <p className="mt-2 text-sm leading-6 text-sand-100/70">
+            Releji iz Tuya aplikacije niso vidni na WiFi skenu. Poveži isti račun prek Tuya oblaka:
+          </p>
+          <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-6 text-sand-100/70">
+            <li>
+              Odpri{" "}
+              <a className="text-glow-400 underline" href="https://iot.tuya.com" target="_blank" rel="noreferrer">
+                iot.tuya.com
+              </a>{" "}
+              in se registriraj.
+            </li>
+            <li>Cloud → Development → Create Cloud Project (Data Center: Central Europe).</li>
+            <li>Service API → odobri IoT Core in Device Status Notification.</li>
+            <li>Devices → Link Tuya App Account → QR kodo skeniraj s Tuya / Smart Life app.</li>
+            <li>Overview → Access ID in Access Secret prilepi sem.</li>
+          </ol>
+          <select
+            value={state.settings.tuyaRegion}
+            onChange={(event) => updateSettings({ tuyaRegion: event.target.value })}
+            className="mt-4 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+          >
+            <option value="eu">Evropa (priporočeno)</option>
+            <option value="us">ZDA</option>
+            <option value="cn">Kitajska</option>
+            <option value="in">Indija</option>
+          </select>
+          <input
+            value={state.settings.tuyaClientId}
+            onChange={(event) => updateSettings({ tuyaClientId: event.target.value })}
+            placeholder="Access ID"
+            className="mt-3 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+          />
+          <input
+            type="password"
+            value={state.settings.tuyaSecret}
+            onChange={(event) => updateSettings({ tuyaSecret: event.target.value })}
+            placeholder="Access Secret"
+            className="mt-3 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              setTuyaStatus("Preverjam Tuya ...");
+              try {
+                const response = await fetch("/api/tuya/devices", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    clientId: state.settings.tuyaClientId,
+                    secret: state.settings.tuyaSecret,
+                    region: state.settings.tuyaRegion,
+                  }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Tuya ni dosegljiv.");
+                const count = Array.isArray(data.devices) ? data.devices.length : 0;
+                setTuyaStatus(
+                  count > 0
+                    ? `Tuya povezan. Najdenih ${count} naprav. Uvozi jih na strani Odkrivanje.`
+                    : data.hint || "Tuya povezan, ampak ni naprav. Poveži Smart Life račun v iot.tuya.com.",
+                );
+              } catch (error) {
+                setTuyaStatus(error instanceof Error ? error.message : "Tuya ni dosegljiv.");
+              }
+            }}
+            disabled={!state.settings.tuyaClientId || !state.settings.tuyaSecret}
+            className="mt-4 rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-40"
+          >
+            Preizkusi Tuya
+          </button>
+          {tuyaStatus ? <p className="mt-3 text-sm text-sand-100/75">{tuyaStatus}</p> : null}
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">

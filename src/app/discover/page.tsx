@@ -15,12 +15,17 @@ export default function DiscoverPage() {
     loadBridgeInventory,
     addDiscovered,
     importHa,
+    importTuya,
   } = useHome();
   const [selected, setSelected] = useState<DiscoveredDevice | null>(null);
   const [haCount, setHaCount] = useState<number | null>(null);
   const [haError, setHaError] = useState("");
+  const [tuyaCount, setTuyaCount] = useState<number | null>(null);
+  const [tuyaError, setTuyaError] = useState("");
+  const [tuyaHint, setTuyaHint] = useState("");
   const [added, setAdded] = useState<number | null>(null);
   const configured = Boolean(state.settings.bridgeUrl && state.settings.bridgeToken);
+  const tuyaReady = Boolean(state.settings.tuyaClientId && state.settings.tuyaSecret);
 
   useEffect(() => {
     if (configured) {
@@ -32,13 +37,59 @@ export default function DiscoverPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <p className="text-xs uppercase tracking-[0.24em] text-sand-400">Odkrivanje</p>
-      <h1 className="mt-2 text-4xl">Iskanje prek domačega strežnika</h1>
+      <h1 className="mt-2 text-4xl">Tuya in iskanje naprav</h1>
       <p className="mt-3 max-w-3xl text-sand-100/65">
-        Tvoj strežnik vidi WiFi, ta aplikacija pa ne. Na strežnik gre samo ena datoteka
-        (most) — ne celoten projekt. Most poišče releje, ti jih krmiliš od kjerkoli.
+        Tuya / Smart Life releji niso vidni na WiFi skenu — krmiliš jih prek Tuya oblaka.
+        Domači strežnik poišče samo Shelly in Tasmota naprave z lokalnim HTTP.
       </p>
 
       <article className="mt-6 rounded-3xl border border-glow-500/20 bg-ink-800 p-5">
+        <h2 className="text-xl">Tuya / Smart Life</h2>
+        <p className="mt-2 text-sm leading-6 text-sand-100/70">
+          Če luč prižigaš v Tuya aplikaciji, jo uvozi od tu. Najprej v Nastavitvah vnesi Access ID
+          in Access Secret s{" "}
+          <a className="text-glow-400 underline" href="https://iot.tuya.com" target="_blank" rel="noreferrer">
+            iot.tuya.com
+          </a>
+          .
+        </p>
+        <button
+          type="button"
+          onClick={async () => {
+            setTuyaError("");
+            setTuyaHint("");
+            try {
+              const count = await importTuya();
+              setTuyaCount(count);
+              if (count === 0) {
+                setTuyaHint(
+                  "Povezava deluje, ampak ni novih naprav. V iot.tuya.com poveži Tuya / Smart Life račun (Devices → Link Tuya App Account) in odobri API IoT Core.",
+                );
+              }
+            } catch (err) {
+              setTuyaError(err instanceof Error ? err.message : "Tuya uvoz ni uspel.");
+            }
+          }}
+          disabled={!tuyaReady}
+          className="mt-4 rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-40"
+        >
+          Uvozi Tuya naprave
+        </button>
+        {!tuyaReady ? (
+          <p className="mt-3 text-sm text-sand-100/60">
+            Najprej v Nastavitvah vnesi Tuya Access ID in Access Secret.
+          </p>
+        ) : null}
+        {tuyaCount !== null ? (
+          <p className="mt-3 text-sm text-glow-400">
+            {tuyaCount === 0 ? "Ni novih Tuya naprav za dodati." : `Dodanih ${tuyaCount} Tuya naprav na ploščo.`}
+          </p>
+        ) : null}
+        {tuyaHint ? <p className="mt-3 text-sm text-sand-100/70">{tuyaHint}</p> : null}
+        {tuyaError ? <p className="mt-3 text-sm text-red-300">{tuyaError}</p> : null}
+      </article>
+
+      <article className="mt-6 rounded-3xl border border-white/10 bg-ink-800 p-5">
         <h2 className="text-xl">Domači strežnik</h2>
         {!configured ? (
           <p className="mt-3 text-sm leading-6 text-sand-100/70">
@@ -90,7 +141,7 @@ export default function DiscoverPage() {
         <div className="mt-4 grid gap-3">
           {discovered.length === 0 ? (
             <p className="rounded-3xl border border-dashed border-white/10 px-5 py-8 text-sand-100/55">
-              Še ni najdenih naprav. Ko most teče, pritisni iskanje.
+              Tuya releja tu ne bo. Za Shelly/Tasmota pritisni iskanje, ko most teče.
             </p>
           ) : (
             discovered.map((item) => (
