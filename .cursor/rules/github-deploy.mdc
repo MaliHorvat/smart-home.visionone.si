@@ -1,0 +1,10 @@
+---
+description: Vedno potisni spremembe na GitHub
+alwaysApply: true
+---
+
+Vse spremembe tega projekta po commit-u potisni na GitHub remote:
+
+`https://github.com/MaliHorvat/smart-home.visionone.si.git`
+
+Veja: `main`. Po vsaki zaključeni nalogi, kjer so bile spremembe v kodi, naredi commit in `git push origin main`, razen če uporabnik izrecno reče, naj se ne commita ali ne pusha.
