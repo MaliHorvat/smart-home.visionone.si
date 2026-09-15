@@ -4,6 +4,7 @@ export type DeviceKind =
   | "plug"
   | "sensor"
   | "thermostat"
+  | "gate"
   | "other";
 
 export type Integration =
@@ -38,6 +39,7 @@ export interface Device {
   entityId?: string;
   onPath?: string;
   offPath?: string;
+  pinned?: boolean;
   state: DeviceState;
 }
 

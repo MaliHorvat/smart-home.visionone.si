@@ -8,6 +8,7 @@ export const KIND_LABELS: Record<Device["kind"], string> = {
   plug: "Vtičnica",
   sensor: "Senzor",
   thermostat: "Termostat",
+  gate: "Ograja",
   other: "Naprava",
 };
 
@@ -28,7 +29,19 @@ const defaultRooms: Room[] = [
   { id: "outdoor", name: "Zunanjost", icon: "trees" },
 ];
 
+const demoGate: Device = {
+  id: "demo-gate",
+  name: "Ograja",
+  roomId: "outdoor",
+  kind: "gate",
+  integration: "demo",
+  address: "demo://gate",
+  pinned: true,
+  state: { on: false, reachable: true },
+};
+
 const demoDevices: Device[] = [
+  demoGate,
   {
     id: "demo-main-light",
     name: "Stropna luč",
@@ -124,7 +137,7 @@ const defaultSettings: Settings = {
 
 export function createDefaultState(): HomeState {
   return {
-    version: 1,
+    version: 2,
     settings: defaultSettings,
     rooms: defaultRooms,
     devices: demoDevices,
@@ -144,9 +157,18 @@ export function loadState(): HomeState {
     if (!raw) return createDefaultState();
     const parsed = JSON.parse(raw) as HomeState;
     if (!parsed?.version) return createDefaultState();
+    const devices = (parsed.devices || []).map((device) => ({
+      ...device,
+      pinned: Boolean(device.pinned),
+    }));
+    if (!devices.some((device) => device.id === "demo-gate" || device.kind === "gate")) {
+      devices.unshift(demoGate);
+    }
     return {
       ...createDefaultState(),
       ...parsed,
+      version: 2,
+      devices,
       settings: { ...defaultSettings, ...parsed.settings },
     };
   } catch {

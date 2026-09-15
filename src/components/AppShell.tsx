@@ -77,14 +77,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-white/5 bg-ink-950/80 px-4 py-3 backdrop-blur lg:hidden">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-sand-400">SmartHome</p>
-            <p className="text-sm font-medium">{state.settings.homeName}</p>
-          </div>
-        </header>
-        <main className="flex-1 px-4 py-6 sm:px-8">{children}</main>
-        <nav className="sticky bottom-0 grid grid-cols-5 border-t border-white/5 bg-ink-950/90 px-1 py-2 backdrop-blur lg:hidden">
+        {pathname === "/" ? null : (
+          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-white/5 bg-ink-950/80 px-4 py-3 backdrop-blur lg:hidden">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-sand-400">SmartHome</p>
+              <p className="text-sm font-medium">{state.settings.homeName}</p>
+            </div>
+          </header>
+        )}
+        <main
+          className={cn(
+            "flex-1",
+            pathname === "/" ? "px-3 py-3 sm:px-6" : "px-4 py-6 sm:px-8",
+          )}
+        >
+          {children}
+        </main>
+        <nav className="sticky bottom-0 grid grid-cols-5 border-t border-white/5 bg-ink-950/90 px-1 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;

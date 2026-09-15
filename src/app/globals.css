@@ -31,6 +31,25 @@ button {
   font: inherit;
 }
 
+.grid-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .grid-tiles {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-tiles {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
 .grid-dashboard {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

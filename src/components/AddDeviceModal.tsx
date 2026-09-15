@@ -19,6 +19,7 @@ export function AddDeviceModal({
   const [roomId, setRoomId] = useState(state.rooms[0]?.id || "");
   const [onPath, setOnPath] = useState("");
   const [offPath, setOffPath] = useState("");
+  const [pinned, setPinned] = useState(preset?.kind === "gate");
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -31,6 +32,7 @@ export function AddDeviceModal({
       entityId: integration === "homeassistant" ? address : undefined,
       onPath: onPath || undefined,
       offPath: offPath || undefined,
+      pinned,
       state: { on: false, reachable: true },
     });
     onClose();
@@ -82,12 +84,17 @@ export function AddDeviceModal({
               Tip
               <select
                 value={kind}
-                onChange={(event) => setKind(event.target.value as DeviceKind)}
+                onChange={(event) => {
+                  const next = event.target.value as DeviceKind;
+                  setKind(next);
+                  if (next === "gate") setPinned(true);
+                }}
                 className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
               >
                 <option value="light">Luč</option>
                 <option value="switch">Stikalo</option>
                 <option value="plug">Vtičnica</option>
+                <option value="gate">Ograja / vrata</option>
                 <option value="sensor">Senzor</option>
                 <option value="thermostat">Termostat</option>
                 <option value="other">Drugo</option>
@@ -128,6 +135,15 @@ export function AddDeviceModal({
               </label>
             </>
           ) : null}
+          <label className="flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={pinned}
+              onChange={(event) => setPinned(event.target.checked)}
+              className="h-4 w-4 accent-glow-500"
+            />
+            Pripni na vrh plošče (hiter dostop, npr. ograja)
+          </label>
         </div>
         <div className="mt-6 flex justify-end gap-3">
           <button type="button" onClick={onClose} className="rounded-2xl px-4 py-3 text-sand-100/70">

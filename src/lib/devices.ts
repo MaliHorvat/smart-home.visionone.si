@@ -64,6 +64,7 @@ function kindFromName(name: string): DeviceKind {
   if (/(temp|klima|climate|thermo)/.test(value)) return "thermostat";
   if (/(sensor|motion|door|window)/.test(value)) return "sensor";
   if (/(plug|socket|vtic)/.test(value)) return "plug";
+  if (/(gate|fence|ograja|vrata)/.test(value)) return "gate";
   if (/(light|lamp|luc|led|bulb)/.test(value)) return "light";
   if (/(switch|relay|stikal)/.test(value)) return "switch";
   return "other";

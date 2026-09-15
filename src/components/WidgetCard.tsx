@@ -6,25 +6,17 @@ import {
   Clapperboard,
   Clock3,
   DoorClosed,
-  Lightbulb,
-  Plug,
   Sparkles,
-  Thermometer,
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { DeviceIcon } from "@/components/DeviceIcon";
 import { useHome } from "@/context/HomeContext";
 import { KIND_LABELS } from "@/lib/storage";
-import type { Device, Widget } from "@/lib/types";
+import type { Widget } from "@/lib/types";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 import { RoomIcon } from "./RoomIcon";
 import { ToggleSwitch } from "./ToggleSwitch";
-
-function DeviceGlyph({ kind }: { kind: Device["kind"] }) {
-  if (kind === "plug") return <Plug size={18} />;
-  if (kind === "sensor" || kind === "thermostat") return <Thermometer size={18} />;
-  return <Lightbulb size={18} />;
-}
 
 export function WidgetCard({ widget, editing }: { widget: Widget; editing: boolean }) {
   const { state, toggleDevice, runScene, removeWidget, moveWidget } = useHome();
@@ -98,7 +90,7 @@ export function WidgetCard({ widget, editing }: { widget: Widget; editing: boole
         <div className="flex h-full items-start justify-between gap-4">
           <div>
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-glow-400">
-              <DeviceGlyph kind={device.kind} />
+              <DeviceIcon kind={device.kind} size={18} />
             </div>
             <h3 className="mt-4 text-xl">{device.name}</h3>
             <p className="text-sm text-sand-100/60">{KIND_LABELS[device.kind]}</p>

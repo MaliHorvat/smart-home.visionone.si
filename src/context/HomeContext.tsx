@@ -140,6 +140,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
           {
             ...device,
             id: uid("dev"),
+            pinned: Boolean(device.pinned),
             state: device.state || { on: false, reachable: true },
           },
         ],
