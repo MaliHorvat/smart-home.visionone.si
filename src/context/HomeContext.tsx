@@ -16,6 +16,7 @@ import {
   loadState,
   normalizeState,
   preferCloudState,
+  realDeviceCount,
   saveState,
   shouldUploadState,
   uid,
@@ -67,6 +68,9 @@ interface HomeContextValue {
   notice: string | null;
   allOff: () => Promise<void>;
   importState: (next: HomeState) => void;
+  syncing: boolean;
+  pullFromCloud: () => Promise<boolean>;
+  pushToCloud: () => Promise<boolean>;
 }
 
 const HomeContext = createContext<HomeContextValue | null>(null);
@@ -81,8 +85,11 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const [discovered, setDiscovered] = useState<DiscoveredDevice[]>([]);
   const [abort, setAbort] = useState<AbortController | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const skipCloudUpload = useRef(true);
   const cloudTimer = useRef<number | null>(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const flash = useCallback((message: string) => {
     setNotice(message);
@@ -92,32 +99,55 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (window.location.pathname === "/login") {
+      setReady(true);
+      return;
+    }
+    let cancelled = false;
     const loaded = loadState();
     setState(loaded);
     const needsPin = Boolean(loaded.settings.pinHash);
     const already = sessionStorage.getItem(UNLOCK_KEY) === "1";
     setUnlocked(!needsPin || already);
-    setReady(true);
-    fetch("/api/state")
+
+    const finish = () => {
+      if (!cancelled) setReady(true);
+    };
+
+    fetch("/api/state", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
+      .then(async (data) => {
+        if (cancelled) return;
         const cloud = data?.state as HomeState | undefined;
         if (cloud && preferCloudState(cloud, loaded)) {
           skipCloudUpload.current = true;
           setState(normalizeState(cloud));
-          flash("Plošča naložena s strežnika");
+          if (realDeviceCount(cloud) > 0) flash("Plošča naložena s strežnika");
           return;
         }
         if (shouldUploadState(loaded, cloud)) {
           skipCloudUpload.current = true;
-          fetch("/api/state", {
+          const payload = { ...loaded, updatedAt: loaded.updatedAt || Date.now() };
+          const response = await fetch("/api/state", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ state: { ...loaded, updatedAt: loaded.updatedAt || Date.now() } }),
-          }).catch(() => undefined);
+            body: JSON.stringify({ state: payload }),
+            cache: "no-store",
+          });
+          const result = await response.json().catch(() => null);
+          if (!cancelled && result?.persisted === false && realDeviceCount(loaded) > 0) {
+            flash("Plošča se ni shranila za telefon. Poskusi Pošlji na telefon.");
+          }
         }
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(finish);
+
+    const timeout = window.setTimeout(finish, 5000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
   }, [flash]);
 
   useEffect(() => {
@@ -133,6 +163,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ state }),
+        cache: "no-store",
       }).catch(() => undefined);
     }, 800);
     return () => {
@@ -552,6 +583,55 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     flash("Nastavitve so uvožene");
   }, [flash]);
 
+  const pullFromCloud = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch("/api/state", { cache: "no-store" });
+      const data = await response.json().catch(() => null);
+      const cloud = data?.state as HomeState | undefined;
+      if (cloud && realDeviceCount(cloud) > 0) {
+        skipCloudUpload.current = true;
+        setState(normalizeState(cloud));
+        flash("Plošča naložena s strežnika");
+        return true;
+      }
+      flash("Na strežniku še ni releja. Najprej ga pošlji z računalnika.");
+      return false;
+    } catch {
+      flash("Strežnika ni bilo mogoče doseči.");
+      return false;
+    } finally {
+      setSyncing(false);
+    }
+  }, [flash]);
+
+  const pushToCloud = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const payload = { ...stateRef.current, updatedAt: Date.now() };
+      skipCloudUpload.current = true;
+      setState(payload);
+      const response = await fetch("/api/state", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: payload }),
+        cache: "no-store",
+      });
+      const result = await response.json().catch(() => null);
+      if (result?.persisted) {
+        flash("Poslano. Na telefonu tapni Naloži s strežnika.");
+        return true;
+      }
+      flash("Strežnik plošče ni shranil. Poskusi znova čez minuto.");
+      return false;
+    } catch {
+      flash("Pošiljanje ni uspelo.");
+      return false;
+    } finally {
+      setSyncing(false);
+    }
+  }, [flash]);
+
   const value = useMemo(
     () => ({
       ready,
@@ -588,6 +668,9 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       notice,
       allOff,
       importState,
+      syncing,
+      pullFromCloud,
+      pushToCloud,
     }),
     [
       abortScan,
@@ -606,6 +689,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       lock,
       moveWidget,
       notice,
+      pullFromCloud,
+      pushToCloud,
       ready,
       refreshDevice,
       removeDevice,
@@ -618,6 +703,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       scanning,
       setPin,
       state,
+      syncing,
       testBridge,
       toggleDevice,
       unlocked,

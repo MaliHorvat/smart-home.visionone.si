@@ -21,7 +21,7 @@ const TUNNEL_INSTALL = `winget install -e --id Cloudflare.cloudflared`;
 const TUNNEL = "cloudflared tunnel --url http://localhost:8787";
 
 export default function SettingsPage() {
-  const { state, updateSettings, setPin, addRoom, resetDemo, importState, testBridge } = useHome();
+  const { state, updateSettings, setPin, addRoom, resetDemo, importState, testBridge, pushToCloud, pullFromCloud, syncing } = useHome();
   const [pin, setPinValue] = useState("");
   const [roomName, setRoomName] = useState("");
   const [saved, setSaved] = useState("");
@@ -282,10 +282,26 @@ export default function SettingsPage() {
         <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
           <h2 className="text-xl">Varnostna kopija in sinhronizacija</h2>
           <p className="mt-2 text-sm text-sand-100/60">
-            Po prijavi se plošča sama shrani na strežnik. Na telefonu se prijavi kot admin —
-            naprave, imena in ikone pridejo z računalnika. Datoteka je samo dodatna kopija.
+            Plošča se shrani na strežnik, da jo vidi tudi telefon. Najprej na računalniku tapni
+            Pošlji na telefon, potem na telefonu Naloži s strežnika.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void pushToCloud()}
+              disabled={syncing}
+              className="rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-50"
+            >
+              {syncing ? "Pošiljam…" : "Pošlji na telefon"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void pullFromCloud()}
+              disabled={syncing}
+              className="rounded-2xl bg-white/10 px-4 py-3 disabled:opacity-50"
+            >
+              Naloži s strežnika
+            </button>
             <button
               type="button"
               onClick={() => {

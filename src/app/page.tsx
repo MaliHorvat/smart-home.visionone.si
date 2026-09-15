@@ -6,10 +6,11 @@ import { ActionTile, DeviceTile, SceneTile } from "@/components/DeviceTile";
 import { EditDeviceModal } from "@/components/EditDeviceModal";
 import { useHome } from "@/context/HomeContext";
 import type { Device } from "@/lib/types";
+import { realDeviceCount } from "@/lib/storage";
 import { cn, formatTime, isStandaloneApp } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const { state, error, toggleDevice, runScene, updateDevice, allOff } = useHome();
+  const { state, error, toggleDevice, runScene, updateDevice, allOff, pullFromCloud, syncing } = useHome();
   const [now, setNow] = useState(() => formatTime());
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -70,6 +71,23 @@ export default function DashboardPage() {
           Na telefonu: Deli → Na začetni zaslon. Potem se odpre kot aplikacija — tudi iz avta.
           <span className="mt-1 block text-sand-100/45">Tapni, da skriješ.</span>
         </button>
+      ) : null}
+
+      {realDeviceCount(state) === 0 ? (
+        <div className="mb-2 rounded-2xl border border-sand-500/30 bg-sand-500/10 px-3 py-2 text-xs text-sand-100/80">
+          <p>
+            Releja na tem zaslonu še ni. Na računalniku odpri Nastavitve in tapni{" "}
+            <strong>Pošlji na telefon</strong>, potem tu:
+          </p>
+          <button
+            type="button"
+            onClick={() => void pullFromCloud()}
+            disabled={syncing}
+            className="mt-2 rounded-xl bg-glow-500 px-3 py-1.5 font-medium text-ink-950 disabled:opacity-50"
+          >
+            {syncing ? "Nalagam…" : "Naloži s strežnika"}
+          </button>
+        </div>
       ) : null}
 
       {error ? (

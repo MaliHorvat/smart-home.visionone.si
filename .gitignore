@@ -12,3 +12,4 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 bridge/token.txt
 data/smarthome-state.json
+.env*
