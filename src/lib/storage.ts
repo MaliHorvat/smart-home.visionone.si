@@ -157,7 +157,7 @@ export function loadState(): HomeState {
     if (!raw) return createDefaultState();
     const parsed = JSON.parse(raw) as HomeState;
     if (!parsed?.version) return createDefaultState();
-    const devices = (parsed.devices || []).map((device) => ({
+    const devices: Device[] = (parsed.devices || []).map((device) => ({
       ...device,
       pinned: Boolean(device.pinned),
     }));
