@@ -23,6 +23,7 @@ import {
   uid,
 } from "@/lib/storage";
 import { buzz } from "@/lib/utils";
+import { tuyaChannelKey, tuyaChannelName, tuyaChannelNumber } from "@/lib/tuya-channels";
 import type {
   Device,
   DiscoveredDevice,
@@ -65,6 +66,7 @@ interface HomeContextValue {
   addDiscovered: (items: DiscoveredDevice[]) => number;
   importHa: () => Promise<number>;
   importTuya: () => Promise<number>;
+  splitTuyaDevice: (id: string, count: number) => number;
   resetDemo: () => void;
   notice: string | null;
   allOff: () => Promise<void>;
@@ -577,17 +579,22 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Tuya uvoz ni uspel.");
-    const existing = new Set(state.devices.map((device) => device.address));
+    const existing = new Set(
+      state.devices
+        .filter((device) => device.integration === "tuya")
+        .map((device) => tuyaChannelKey(device.address, device.entityId)),
+    );
     const imported = (
       data.devices as Array<{
         id: string;
         name: string;
         kind: Device["kind"];
         code: string;
+        channel?: number;
         on: boolean;
         reachable: boolean;
       }>
-    ).filter((item) => !existing.has(item.id));
+    ).filter((item) => !existing.has(tuyaChannelKey(item.id, item.code)));
 
     patchState((current) => ({
       ...current,
@@ -601,6 +608,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
           integration: "tuya" as const,
           address: item.id,
           entityId: item.code,
+          channel: item.channel || tuyaChannelNumber(item.code),
           state: { on: item.on, reachable: item.reachable },
         })),
       ],
@@ -613,6 +621,56 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     state.settings.tuyaRegion,
     state.settings.tuyaSecret,
   ]);
+
+  const splitTuyaDevice = useCallback(
+    (id: string, count: number) => {
+      const relays = Math.min(8, Math.max(1, Math.round(count)));
+      const codes = Array.from({ length: relays }, (_, index) => `switch_${index + 1}`);
+      let added = 0;
+      patchState((current) => {
+        const device = current.devices.find((item) => item.id === id);
+        if (!device || device.integration !== "tuya") return current;
+        const baseName = device.name.replace(/\s+\d+$/, "").trim() || device.name;
+        const have = new Set(
+          current.devices
+            .filter((item) => item.integration === "tuya" && item.address === device.address)
+            .map((item) => item.entityId || "switch_1"),
+        );
+        const additions = codes
+          .filter((code) => !have.has(code))
+          .map((code) => ({
+            ...device,
+            id: uid("tuya"),
+            name: tuyaChannelName(baseName, code, tuyaChannelNumber(code) - 1, relays),
+            entityId: code,
+            channel: tuyaChannelNumber(code),
+            pinned: false,
+            state: { ...device.state, on: false },
+          }));
+        added = additions.length;
+        return {
+          ...current,
+          devices: [
+            ...current.devices.map((item) => {
+              if (item.id !== id) return item;
+              const code = item.entityId || "switch_1";
+              return {
+                ...item,
+                entityId: code,
+                channel: tuyaChannelNumber(code),
+                name: relays > 1 ? tuyaChannelName(baseName, code, 0, relays) : item.name,
+              };
+            }),
+            ...additions,
+          ],
+        };
+      });
+      if (added) flash(`Dodanih ${added} stikal z iste naprave`);
+      else flash("Ta stikala so že na plošči");
+      return added;
+    },
+    [flash, patchState],
+  );
 
   const resetDemo = useCallback(() => {
     const next = createDefaultState();
@@ -729,6 +787,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       addDiscovered,
       importHa,
       importTuya,
+      splitTuyaDevice,
       resetDemo,
       notice,
       allOff,
@@ -767,6 +826,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       scanViaBridge,
       scanning,
       setPin,
+      splitTuyaDevice,
       state,
       syncing,
       testBridge,

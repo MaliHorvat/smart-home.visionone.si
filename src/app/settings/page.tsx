@@ -160,7 +160,9 @@ export default function SettingsPage() {
         <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
           <h2 className="text-xl">Tuya / Smart Life</h2>
           <p className="mt-2 text-sm leading-6 text-sand-100/70">
-            Releji iz Tuya aplikacije niso vidni na WiFi skenu. Poveži isti račun prek Tuya oblaka:
+            Releji iz Tuya aplikacije niso vidni na WiFi skenu. Poveži isti račun prek Tuya oblaka.
+            Štiri stikala v Tuya app so na spletni strani ena naprava — v tej aplikaciji jih razdeli
+            na štiri kvadratke.
           </p>
           <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-6 text-sand-100/70">
             <li>

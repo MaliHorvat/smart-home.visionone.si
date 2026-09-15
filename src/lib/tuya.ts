@@ -1,5 +1,24 @@
 import crypto from "node:crypto";
 import type { DeviceKind } from "./types";
+import {
+  isSwitchDp,
+  sortSwitchCodes,
+  tuyaChannelName,
+  tuyaChannelNumber,
+  tuyaIsOn,
+  tuyaKind,
+  tuyaSwitchCode,
+  tuyaSwitchCodes,
+} from "./tuya-channels";
+
+export {
+  tuyaChannelName,
+  tuyaChannelNumber,
+  tuyaIsOn,
+  tuyaKind,
+  tuyaSwitchCode,
+  tuyaSwitchCodes,
+};
 
 export const TUYA_HOSTS: Record<string, string> = {
   eu: "https://openapi.tuyaeu.com",
@@ -117,35 +136,6 @@ export async function tuyaToken(clientId: string, secret: string, region: string
   return data.result;
 }
 
-export function tuyaKind(category?: string, name?: string): DeviceKind {
-  const value = `${category || ""} ${name || ""}`.toLowerCase();
-  if (/(gate|fence|ograja|vrata|cl)/.test(value)) return "gate";
-  if (/(dj|dd|fwd|dc|light|lamp|luc|led)/.test(value)) return "light";
-  if (/(cz|pc|plug|socket|vtic)/.test(value)) return "plug";
-  if (/(wk|climate|thermo)/.test(value)) return "thermostat";
-  return "switch";
-}
-
-export function tuyaSwitchCode(
-  status?: Array<{ code: string; value: unknown }>,
-) {
-  const codes = status || [];
-  const match = codes.find((item) =>
-    /^(switch_led|switch_1|switch_on|switch|led_switch)$/i.test(item.code),
-  );
-  return match?.code || codes.find((item) => typeof item.value === "boolean")?.code || "switch_1";
-}
-
-export function tuyaIsOn(
-  status?: Array<{ code: string; value: unknown }>,
-  code?: string,
-) {
-  const item =
-    (status || []).find((entry) => entry.code === code) ||
-    (status || []).find((entry) => typeof entry.value === "boolean");
-  return Boolean(item?.value);
-}
-
 type TuyaDeviceRaw = {
   id?: string;
   device_id?: string;
@@ -164,7 +154,18 @@ type TuyaDeviceRaw = {
   status?: Array<{ code: string; value: unknown }>;
 };
 
-export function mapTuyaDevice(item: TuyaDeviceRaw) {
+export type TuyaMappedDevice = {
+  id: string;
+  name: string;
+  kind: DeviceKind;
+  code: string;
+  channel: number;
+  on: boolean;
+  reachable: boolean;
+  category?: string;
+};
+
+export function mapTuyaChannels(item: TuyaDeviceRaw): TuyaMappedDevice[] {
   const id = String(item.id || item.device_id || item.devId || item.uuid || "");
   const name = String(
     item.customName ||
@@ -175,17 +176,19 @@ export function mapTuyaDevice(item: TuyaDeviceRaw) {
       item.product_name ||
       `Tuya ${id.slice(-4)}`,
   );
-  const code = tuyaSwitchCode(item.status);
+  const codes = tuyaSwitchCodes(item.status);
+  const kind = tuyaKind(item.category, name);
   const online = item.isOnline ?? item.is_online ?? item.online;
-  return {
+  return codes.map((code, index) => ({
     id,
-    name,
-    kind: tuyaKind(item.category, name),
+    name: tuyaChannelName(name, code, index, codes.length),
+    kind,
     code,
+    channel: tuyaChannelNumber(code, index),
     on: tuyaIsOn(item.status, code),
     reachable: online !== false,
     category: item.category,
-  };
+  }));
 }
 
 function extractDevices(result: unknown): TuyaDeviceRaw[] {
@@ -221,28 +224,97 @@ async function tryList(
   return extractDevices(data.result);
 }
 
+async function readSwitchCodes(
+  region: string,
+  clientId: string,
+  secret: string,
+  accessToken: string,
+  deviceId: string,
+) {
+  const codes: string[] = [];
+  try {
+    const data = await tuyaRequest<{ result?: Array<{ code: string; value?: unknown }> }>({
+      region,
+      clientId,
+      secret,
+      accessToken,
+      path: `/v1.0/devices/${deviceId}/status`,
+    });
+    codes.push(...tuyaSwitchCodes(data.result));
+  } catch {
+    /* status is optional */
+  }
+  try {
+    const data = await tuyaRequest<{
+      result?: {
+        functions?: Array<{ code?: string; type?: string }>;
+        status?: Array<{ code?: string; type?: string }>;
+      };
+    }>({
+      region,
+      clientId,
+      secret,
+      accessToken,
+      path: `/v1.0/devices/${deviceId}/functions`,
+    });
+    const listed = [
+      ...(data.result?.functions || []),
+      ...(data.result?.status || []),
+    ]
+      .map((item) => String(item.code || ""))
+      .filter((code) => isSwitchDp(code));
+    codes.push(...listed);
+  } catch {
+    /* functions are optional */
+  }
+  return sortSwitchCodes(codes);
+}
+
 async function enrichStatus(
   region: string,
   clientId: string,
   secret: string,
   accessToken: string,
-  devices: ReturnType<typeof mapTuyaDevice>[],
+  devices: TuyaMappedDevice[],
 ) {
-  const next = [...devices];
-  for (const device of next) {
+  const grouped = new Map<string, TuyaMappedDevice[]>();
+  for (const device of devices) {
+    const list = grouped.get(device.id) || [];
+    list.push(device);
+    grouped.set(device.id, list);
+  }
+
+  const next: TuyaMappedDevice[] = [];
+  for (const [id, group] of grouped) {
+    const discovered = await readSwitchCodes(region, clientId, secret, accessToken, id);
+    const codes = sortSwitchCodes([
+      ...discovered,
+      ...group.map((item) => item.code),
+    ]);
+    const base = group[0];
+    const baseName = base.name.replace(/\s+\d+$/, "").trim() || base.name;
+    let status: Array<{ code: string; value: unknown }> | undefined;
     try {
       const data = await tuyaRequest<{ result?: Array<{ code: string; value: unknown }> }>({
         region,
         clientId,
         secret,
         accessToken,
-        path: `/v1.0/devices/${device.id}/status`,
+        path: `/v1.0/devices/${id}/status`,
       });
-      const code = tuyaSwitchCode(data.result);
-      device.code = code;
-      device.on = tuyaIsOn(data.result, code);
+      status = data.result;
     } catch {
-      /* status is optional at import time */
+      status = undefined;
+    }
+    const channels = codes.length ? codes : ["switch_1"];
+    for (const [index, code] of channels.entries()) {
+      next.push({
+        ...base,
+        name: tuyaChannelName(baseName, code, index, channels.length),
+        code,
+        channel: tuyaChannelNumber(code, index),
+        on: tuyaIsOn(status, code),
+      });
     }
   }
   return next;
@@ -250,14 +322,16 @@ async function enrichStatus(
 
 export async function tuyaListDevices(clientId: string, secret: string, region: string) {
   const token = await tuyaToken(clientId, secret, region);
-  const collected = new Map<string, ReturnType<typeof mapTuyaDevice>>();
+  const collected = new Map<string, TuyaMappedDevice>();
   let lastError: Error | null = null;
   let projectError: Error | null = null;
 
   const add = (items: TuyaDeviceRaw[]) => {
     for (const item of items) {
-      const mapped = mapTuyaDevice(item);
-      if (mapped.id && !collected.has(mapped.id)) collected.set(mapped.id, mapped);
+      for (const mapped of mapTuyaChannels(item)) {
+        const key = `${mapped.id}:${mapped.code}`;
+        if (mapped.id && !collected.has(key)) collected.set(key, mapped);
+      }
     }
   };
 

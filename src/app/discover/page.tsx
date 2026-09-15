@@ -38,10 +38,11 @@ export default function DiscoverPage() {
     <div className="mx-auto max-w-6xl">
       <p className="text-xs uppercase tracking-[0.24em] text-sand-400">Odkrivanje</p>
       <h1 className="mt-2 text-4xl">Tuya in iskanje naprav</h1>
-      <p className="mt-3 max-w-3xl text-sand-100/65">
-        Tuya / Smart Life releji niso vidni na WiFi skenu — krmiliš jih prek Tuya oblaka.
-        Domači strežnik poišče samo Shelly in Tasmota naprave z lokalnim HTTP.
-      </p>
+        <p className="mt-3 max-w-3xl text-sand-100/65">
+          Tuya / Smart Life releji niso vidni na WiFi skenu — krmiliš jih prek Tuya oblaka.
+          Če ima en modul več relejev, uvoz naredi ločen kvadratek za vsako stikalo.
+          Domači strežnik poišče samo Shelly in Tasmota naprave z lokalnim HTTP.
+        </p>
 
       <article className="mt-6 rounded-3xl border border-glow-500/20 bg-ink-800 p-5">
         <h2 className="text-xl">Tuya / Smart Life</h2>
@@ -63,7 +64,7 @@ export default function DiscoverPage() {
               setTuyaCount(count);
               if (count === 0) {
                 setTuyaHint(
-                  "Tuya API je povezan, ampak seznam naprav je prazen. Počakaj na novo različico, nato znova uvozi. IoT Core mora biti odobren.",
+                  "Ni novih stikal. Če je modul že uvožen kot ena naprava, jo odpri na plošči: Uredi → število relejev 4 → Dodaj stikala na ploščo. Ali znova uvozi.",
                 );
               }
             } catch (err) {
