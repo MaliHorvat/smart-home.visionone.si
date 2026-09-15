@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   Lock,
+  LogOut,
   Radar,
   Settings,
   Sparkles,
@@ -26,6 +27,13 @@ const NAV = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { ready, unlocked, state, lock } = useHome();
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
+  if (pathname === "/login") return <>{children}</>;
 
   if (!ready) {
     return (
@@ -72,9 +80,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="mt-6 flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-sand-100/60 hover:bg-white/5"
           >
             <Lock size={16} />
-            Zakleni
+            Zakleni PIN
           </button>
         ) : null}
+        <button
+          type="button"
+          onClick={logout}
+          className="mt-2 flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-sand-100/60 hover:bg-white/5"
+        >
+          <LogOut size={16} />
+          Odjava
+        </button>
       </aside>
 
       <div className="flex min-h-screen flex-col">
@@ -84,6 +100,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="text-[10px] uppercase tracking-[0.24em] text-sand-400">SmartHome</p>
               <p className="text-sm font-medium">{state.settings.homeName}</p>
             </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-xl px-3 py-2 text-xs text-sand-100/60"
+            >
+              Odjava
+            </button>
           </header>
         )}
         <main

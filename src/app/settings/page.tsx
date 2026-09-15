@@ -71,10 +71,28 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+          <h2 className="text-xl">Prijava</h2>
+          <p className="mt-2 text-sm leading-6 text-sand-100/70">
+            En uporabnik: <strong>admin</strong>. Geslo je na strežniku, seja v piškotku 30 dni.
+            Baze ni. Če želiš drugo geslo, ga nastavi v Vercel kot <code>AUTH_PASSWORD</code>.
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              window.location.href = "/login";
+            }}
+            className="mt-4 rounded-2xl bg-white/10 px-4 py-3"
+          >
+            Odjava
+          </button>
+        </div>
+
         <form onSubmit={savePin} className="rounded-3xl border border-white/10 bg-ink-800 p-5">
           <h2 className="text-xl">PIN zaklep</h2>
           <p className="mt-2 text-sm text-sand-100/60">
-            Priporočeno, ker bo aplikacija na javni domeni lahko krmilila hišo.
+            Dodatno, na tem telefonu. Glavna zaščita je prijava (admin). Baze ne rabiš.
           </p>
           <input
             type="password"
