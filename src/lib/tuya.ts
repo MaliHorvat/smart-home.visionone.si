@@ -16,6 +16,19 @@ function hmac(value: string, secret: string) {
   return crypto.createHmac("sha256", secret).update(value, "utf8").digest("hex").toUpperCase();
 }
 
+function signedPath(path: string) {
+  const qIndex = path.indexOf("?");
+  if (qIndex < 0) return path;
+  const pathname = path.slice(0, qIndex);
+  const query = path
+    .slice(qIndex + 1)
+    .split("&")
+    .filter(Boolean)
+    .sort((a, b) => a.split("=")[0].localeCompare(b.split("=")[0]))
+    .join("&");
+  return query ? `${pathname}?${query}` : pathname;
+}
+
 function signRequest(params: {
   clientId: string;
   secret: string;
@@ -25,8 +38,9 @@ function signRequest(params: {
   body?: string;
   t: string;
 }) {
+  const path = signedPath(params.path);
   const bodyHash = sha256Hex(params.body || "");
-  const stringToSign = `${params.method}\n${bodyHash}\n\n${params.path}`;
+  const stringToSign = `${params.method}\n${bodyHash}\n\n${path}`;
   const message = params.clientId + (params.accessToken || "") + params.t + stringToSign;
   return hmac(message, params.secret);
 }
@@ -44,12 +58,13 @@ export async function tuyaRequest<T>(params: {
   const body = params.body ? JSON.stringify(params.body) : "";
   const t = Date.now().toString();
   const host = TUYA_HOSTS[params.region] || TUYA_HOSTS.eu;
+  const path = signedPath(params.path);
   const sign = signRequest({
     clientId: params.clientId,
     secret: params.secret,
     accessToken: params.accessToken,
     method,
-    path: params.path,
+    path,
     body,
     t,
   });
@@ -63,7 +78,7 @@ export async function tuyaRequest<T>(params: {
   if (params.accessToken) headers.access_token = params.accessToken;
   if (body) headers["Content-Type"] = "application/json";
 
-  const response = await fetch(`${host}${params.path}`, {
+  const response = await fetch(`${host}${path}`, {
     method,
     headers,
     body: body || undefined,
@@ -134,28 +149,55 @@ export function tuyaIsOn(
 type TuyaDeviceRaw = {
   id?: string;
   device_id?: string;
+  devId?: string;
+  uuid?: string;
   name?: string;
   customName?: string;
   custom_name?: string;
+  device_name?: string;
+  productName?: string;
+  product_name?: string;
   category?: string;
   online?: boolean;
   is_online?: boolean;
+  isOnline?: boolean;
   status?: Array<{ code: string; value: unknown }>;
 };
 
 export function mapTuyaDevice(item: TuyaDeviceRaw) {
-  const id = String(item.id || item.device_id || "");
-  const name = String(item.name || item.customName || item.custom_name || `Tuya ${id.slice(-4)}`);
+  const id = String(item.id || item.device_id || item.devId || item.uuid || "");
+  const name = String(
+    item.customName ||
+      item.custom_name ||
+      item.name ||
+      item.device_name ||
+      item.productName ||
+      item.product_name ||
+      `Tuya ${id.slice(-4)}`,
+  );
   const code = tuyaSwitchCode(item.status);
+  const online = item.isOnline ?? item.is_online ?? item.online;
   return {
     id,
     name,
     kind: tuyaKind(item.category, name),
     code,
     on: tuyaIsOn(item.status, code),
-    reachable: item.online !== false && item.is_online !== false,
+    reachable: online !== false,
     category: item.category,
   };
+}
+
+function extractDevices(result: unknown): TuyaDeviceRaw[] {
+  if (!result) return [];
+  if (Array.isArray(result)) return result as TuyaDeviceRaw[];
+  if (typeof result !== "object") return [];
+  const value = result as {
+    devices?: TuyaDeviceRaw[];
+    list?: TuyaDeviceRaw[];
+    data?: TuyaDeviceRaw[];
+  };
+  return value.devices || value.list || value.data || [];
 }
 
 async function tryList(
@@ -164,24 +206,19 @@ async function tryList(
   secret: string,
   accessToken: string,
   path: string,
+  method: "GET" | "POST" = "GET",
+  body?: unknown,
 ): Promise<TuyaDeviceRaw[]> {
-  const data = await tuyaRequest<{
-    result?:
-      | TuyaDeviceRaw[]
-      | {
-          devices?: TuyaDeviceRaw[];
-          list?: TuyaDeviceRaw[];
-        };
-  }>({
+  const data = await tuyaRequest<{ result?: unknown }>({
     region,
     clientId,
     secret,
     accessToken,
+    method,
     path,
+    body,
   });
-  const result = data.result;
-  if (Array.isArray(result)) return result;
-  return result?.devices || result?.list || [];
+  return extractDevices(data.result);
 }
 
 async function enrichStatus(
@@ -213,45 +250,80 @@ async function enrichStatus(
 
 export async function tuyaListDevices(clientId: string, secret: string, region: string) {
   const token = await tuyaToken(clientId, secret, region);
-  const auth = {
-    region,
-    clientId,
-    secret,
-    accessToken: token.access_token,
-  };
-  const attempts = [
-    "/v1.0/iot-03/devices?page_no=1&page_size=100",
-    "/v1.3/iot-03/devices?page_no=1&page_size=100",
-    `/v1.0/users/${token.uid}/devices`,
-  ];
-
+  const collected = new Map<string, ReturnType<typeof mapTuyaDevice>>();
   let lastError: Error | null = null;
-  let listedOk = false;
+  let projectError: Error | null = null;
 
-  for (const path of attempts) {
+  const add = (items: TuyaDeviceRaw[]) => {
+    for (const item of items) {
+      const mapped = mapTuyaDevice(item);
+      if (mapped.id && !collected.has(mapped.id)) collected.set(mapped.id, mapped);
+    }
+  };
+
+  const pull = async (path: string, method: "GET" | "POST" = "GET", body?: unknown) => {
+    try {
+      add(await tryList(region, clientId, secret, token.access_token, path, method, body));
+    } catch (error) {
+      lastError = error instanceof Error ? error : lastError;
+    }
+  };
+
+  let lastId = "";
+  for (let page = 0; page < 10; page += 1) {
+    const before = collected.size;
+    const path = lastId
+      ? `/v2.0/cloud/thing/device?last_id=${lastId}&page_size=20`
+      : "/v2.0/cloud/thing/device?page_size=20";
     try {
       const items = await tryList(region, clientId, secret, token.access_token, path);
-      listedOk = true;
-      const devices = items.map(mapTuyaDevice).filter((item) => item.id);
-      if (devices.length > 0) return enrichStatus(region, clientId, secret, token.access_token, devices);
+      add(items);
+      if (items.length < 20) break;
+      lastId = String(items[items.length - 1]?.id || items[items.length - 1]?.device_id || "");
+      if (!lastId || collected.size === before) break;
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error("Tuya seznam ni uspel.");
+      projectError = error instanceof Error ? error : projectError;
+      lastError = projectError;
+      break;
     }
   }
 
+  await pull("/v1.0/iot-03/devices?page_no=1&page_size=100");
+  await pull("/v1.3/iot-03/devices?page_no=1&page_size=100");
+  await pull("/v1.0/iot-03/devices/query", "POST", { page_no: 1, page_size: 100 });
+  await pull(`/v1.0/users/${token.uid}/devices`);
+
   try {
     const users = await tuyaRequest<{
-      result?: { list?: Array<{ uid?: string }> };
+      result?: { list?: Array<{ uid?: string; user_id?: string }> };
     }>({
-      ...auth,
-      path: "/v1.0/iot-01/associated-users/actions/search?page_no=1&page_size=50",
+      region,
+      clientId,
+      secret,
+      accessToken: token.access_token,
+      path: "/v1.0/iot-01/associated-users/actions/search?page_size=50",
     });
-    listedOk = true;
     for (const user of users.result?.list || []) {
-      if (!user.uid) continue;
-      const items = await tryList(region, clientId, secret, token.access_token, `/v1.0/users/${user.uid}/devices`);
-      const devices = items.map(mapTuyaDevice).filter((item) => item.id);
-      if (devices.length > 0) return enrichStatus(region, clientId, secret, token.access_token, devices);
+      const uid = user.uid || user.user_id;
+      if (!uid) continue;
+      await pull(`/v1.0/users/${uid}/devices`);
+      try {
+        const homes = await tuyaRequest<{
+          result?: Array<{ home_id?: number; homeId?: number }>;
+        }>({
+          region,
+          clientId,
+          secret,
+          accessToken: token.access_token,
+          path: `/v1.0/users/${uid}/homes`,
+        });
+        for (const home of homes.result || []) {
+          const homeId = home.home_id || home.homeId;
+          if (homeId) await pull(`/v1.0/homes/${homeId}/devices`);
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : lastError;
+      }
     }
   } catch (error) {
     lastError = error instanceof Error ? error : lastError;
@@ -259,23 +331,23 @@ export async function tuyaListDevices(clientId: string, secret: string, region: 
 
   try {
     const homes = await tuyaRequest<{
-      result?: Array<{ home_id?: number; homeId?: number; name?: string }>;
+      result?: Array<{ home_id?: number; homeId?: number }>;
     }>({
-      ...auth,
+      region,
+      clientId,
+      secret,
+      accessToken: token.access_token,
       path: `/v1.0/users/${token.uid}/homes`,
     });
-    listedOk = true;
     for (const home of homes.result || []) {
       const homeId = home.home_id || home.homeId;
-      if (!homeId) continue;
-      const items = await tryList(region, clientId, secret, token.access_token, `/v1.0/homes/${homeId}/devices`);
-      const devices = items.map(mapTuyaDevice).filter((item) => item.id);
-      if (devices.length > 0) return enrichStatus(region, clientId, secret, token.access_token, devices);
+      if (homeId) await pull(`/v1.0/homes/${homeId}/devices`);
     }
   } catch (error) {
     lastError = error instanceof Error ? error : lastError;
   }
 
-  if (!listedOk && lastError) throw lastError;
-  return [];
+  const devices = [...collected.values()];
+  if (devices.length === 0 && projectError) throw projectError;
+  return enrichStatus(region, clientId, secret, token.access_token, devices);
 }

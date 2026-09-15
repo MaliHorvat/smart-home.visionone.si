@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       devices,
       hint:
         devices.length === 0
-          ? "Povezava z Tuya oblakom deluje, ampak ni naprav. V iot.tuya.com odpri projekt → Devices → Link Tuya App Account in s telefonom skeniraj QR v Tuya / Smart Life. Nato v Cloud → API Product odobri IoT Core."
+          ? "Tuya API je povezan, ampak seznam naprav je prazen. V iot.tuya.com → Cloud → API Product preveri, da je IoT Core odobren, nato znova uvozi."
           : null,
     });
   } catch (error) {

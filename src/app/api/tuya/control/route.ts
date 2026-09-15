@@ -15,15 +15,28 @@ export async function POST(request: Request) {
 
   try {
     const token = await tuyaToken(clientId, secret, region);
-    await tuyaRequest({
-      region,
-      clientId,
-      secret,
-      accessToken: token.access_token,
-      method: "POST",
-      path: `/v1.0/devices/${deviceId}/commands`,
-      body: { commands: [{ code, value: on }] },
-    });
+    const commands = { commands: [{ code, value: on }] };
+    try {
+      await tuyaRequest({
+        region,
+        clientId,
+        secret,
+        accessToken: token.access_token,
+        method: "POST",
+        path: `/v1.0/devices/${deviceId}/commands`,
+        body: commands,
+      });
+    } catch {
+      await tuyaRequest({
+        region,
+        clientId,
+        secret,
+        accessToken: token.access_token,
+        method: "POST",
+        path: `/v2.0/cloud/thing/${deviceId}/command`,
+        body: commands,
+      });
+    }
     return NextResponse.json({
       state: { on, reachable: true, lastSeen: new Date().toISOString() },
     });

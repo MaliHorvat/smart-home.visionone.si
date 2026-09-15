@@ -63,7 +63,7 @@ export default function DiscoverPage() {
               setTuyaCount(count);
               if (count === 0) {
                 setTuyaHint(
-                  "Povezava deluje, ampak ni novih naprav. V iot.tuya.com poveži Tuya / Smart Life račun (Devices → Link Tuya App Account) in odobri API IoT Core.",
+                  "Tuya API je povezan, ampak seznam naprav je prazen. Počakaj na novo različico, nato znova uvozi. IoT Core mora biti odobren.",
                 );
               }
             } catch (err) {
