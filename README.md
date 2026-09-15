@@ -51,9 +51,15 @@ curl -fsSL -o server.mjs https://raw.githubusercontent.com/MaliHorvat/smart-home
 node server.mjs
 ```
 
-V drugem oknu, da krmiliš od kjerkoli:
+V drugem oknu, da krmiliš od kjerkoli. Najprej namesti tunel (samo enkrat):
 
-```bash
+```powershell
+winget install -e --id Cloudflare.cloudflared
+```
+
+Zapri in znova odpri PowerShell, nato:
+
+```powershell
 cloudflared tunnel --url http://localhost:8787
 ```
 

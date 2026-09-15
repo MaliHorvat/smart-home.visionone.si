@@ -16,6 +16,8 @@ const LINUX_SETUP = `mkdir -p ~/smarthome-bridge && cd ~/smarthome-bridge
 curl -fsSL -o server.mjs ${BRIDGE_URL}
 node server.mjs`;
 
+const TUNNEL_INSTALL = `winget install -e --id Cloudflare.cloudflared`;
+
 const TUNNEL = "cloudflared tunnel --url http://localhost:8787";
 
 export default function SettingsPage() {
@@ -96,11 +98,12 @@ export default function SettingsPage() {
             <li>Namesti Node.js, če ga še ni: nodejs.org</li>
             <li>Na strežniku zaženi ukaz spodaj in pusti okno odprto.</li>
             <li>Žeton se zapiše v token.txt — prilepi ga spodaj.</li>
-            <li>V drugem oknu zaženi tunel, da je most dosegljiv iz interneta.</li>
+            <li>V drugem oknu najprej namesti Cloudflare tunel, nato ga zaženi.</li>
           </ol>
           <CopyBlock label="Windows (PowerShell)" value={WIN_SETUP} />
           <CopyBlock label="Linux" value={LINUX_SETUP} />
-          <CopyBlock label="Drugo okno na strežniku — dostop od kjerkoli" value={TUNNEL} />
+          <CopyBlock label="Windows: namesti tunel (samo enkrat)" value={TUNNEL_INSTALL} />
+          <CopyBlock label="Nato v NOVEM oknu PowerShell" value={TUNNEL} />
           <input
             value={state.settings.bridgeUrl}
             onChange={(event) => updateSettings({ bridgeUrl: event.target.value })}
