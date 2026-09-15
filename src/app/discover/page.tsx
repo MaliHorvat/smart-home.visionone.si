@@ -34,17 +34,16 @@ export default function DiscoverPage() {
       <p className="text-xs uppercase tracking-[0.24em] text-sand-400">Odkrivanje</p>
       <h1 className="mt-2 text-4xl">Iskanje prek domačega strežnika</h1>
       <p className="mt-3 max-w-3xl text-sand-100/65">
-        Tvoj strežnik vidi WiFi. Tam teče most, ki poišče Shelly in Tasmota naprave. Ta spletna
-        aplikacija ga samo vpraša po seznamu.
+        Tvoj strežnik vidi WiFi, ta aplikacija pa ne. Na strežnik gre samo ena datoteka
+        (most) — ne celoten projekt. Most poišče releje, ti jih krmiliš od kjerkoli.
       </p>
 
       <article className="mt-6 rounded-3xl border border-glow-500/20 bg-ink-800 p-5">
         <h2 className="text-xl">Domači strežnik</h2>
         {!configured ? (
           <p className="mt-3 text-sm leading-6 text-sand-100/70">
-            Najprej v Nastavitvah vpiši URL mostu in žeton. Na strežniku zaženi{" "}
-            <span className="text-sand-400">npm run bridge:win</span> (Windows) ali{" "}
-            <span className="text-sand-400">npm run bridge</span>.
+            Najprej v Nastavitvah poveži most: na strežnik gre samo ena datoteka, ne celoten
+            projekt. Tam so tudi ukazi za kopiranje.
           </p>
         ) : (
           <p className="mt-3 text-sm text-sand-100/70">

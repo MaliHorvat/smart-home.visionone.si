@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+cd "$(dirname "$0")"
 if ! command -v node >/dev/null 2>&1; then
-  echo "Node.js ni nameščen."
+  echo "Namesti Node.js: https://nodejs.org"
   exit 1
 fi
-echo "Zaganjam SmartHome most..."
-exec node bridge/server.mjs
+echo "Most išče releje v omrežju. To okno pusti odprto."
+exec node ./server.mjs

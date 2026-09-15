@@ -1,7 +1,22 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { CopyBlock } from "@/components/CopyBlock";
 import { useHome } from "@/context/HomeContext";
+
+const BRIDGE_URL =
+  "https://raw.githubusercontent.com/MaliHorvat/smart-home.visionone.si/main/bridge/server.mjs";
+
+const WIN_SETUP = `New-Item -ItemType Directory -Force C:\\smarthome-bridge | Out-Null
+Set-Location C:\\smarthome-bridge
+Invoke-WebRequest -Uri "${BRIDGE_URL}" -OutFile server.mjs
+node server.mjs`;
+
+const LINUX_SETUP = `mkdir -p ~/smarthome-bridge && cd ~/smarthome-bridge
+curl -fsSL -o server.mjs ${BRIDGE_URL}
+node server.mjs`;
+
+const TUNNEL = "cloudflared tunnel --url http://localhost:8787";
 
 export default function SettingsPage() {
   const { state, updateSettings, setPin, addRoom, resetDemo, importState, testBridge } = useHome();
@@ -72,16 +87,20 @@ export default function SettingsPage() {
         </form>
 
         <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
-          <h2 className="text-xl">Domači strežnik (most)</h2>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-sand-100/70">
-            <li>Na strežniku skopiraj ta projekt in zaženi <span className="text-sand-400">npm run bridge:win</span> (Windows) ali <span className="text-sand-400">npm run bridge</span>.</li>
-            <li>Žeton se shrani v <span className="text-sand-400">bridge/token.txt</span>. Prilepi ga spodaj.</li>
-            <li>
-              Most mora biti dosegljiv prek HTTPS. Najenostavneje: na strežniku
-              <span className="text-sand-400"> cloudflared tunnel --url http://localhost:8787</span>
-              in dobljeni naslov vpiši tu.
-            </li>
+          <h2 className="text-xl">Domači strežnik</h2>
+          <p className="mt-2 text-sm leading-6 text-sand-100/70">
+            Celotnega projekta ne rabiš. Na strežnik gre <strong>ena datoteka</strong>, ki poišče
+            releje (Shelly, Tasmota) v omrežju. Aplikacija jih potem krmili od kjerkoli.
+          </p>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-6 text-sand-100/70">
+            <li>Namesti Node.js, če ga še ni: nodejs.org</li>
+            <li>Na strežniku zaženi ukaz spodaj in pusti okno odprto.</li>
+            <li>Žeton se zapiše v token.txt — prilepi ga spodaj.</li>
+            <li>V drugem oknu zaženi tunel, da je most dosegljiv iz interneta.</li>
           </ol>
+          <CopyBlock label="Windows (PowerShell)" value={WIN_SETUP} />
+          <CopyBlock label="Linux" value={LINUX_SETUP} />
+          <CopyBlock label="Drugo okno na strežniku — dostop od kjerkoli" value={TUNNEL} />
           <input
             value={state.settings.bridgeUrl}
             onChange={(event) => updateSettings({ bridgeUrl: event.target.value })}
@@ -111,18 +130,6 @@ export default function SettingsPage() {
               className="rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-40"
             >
               Preizkusi povezavo
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const bytes = new Uint8Array(16);
-                crypto.getRandomValues(bytes);
-                const token = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-                updateSettings({ bridgeToken: token });
-              }}
-              className="rounded-2xl bg-white/10 px-4 py-3"
-            >
-              Ustvari žeton
             </button>
           </div>
           {bridgeStatus ? <p className="mt-3 text-sm text-sand-100/75">{bridgeStatus}</p> : null}

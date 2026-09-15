@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 /**
- * Domači most: teče na vedno prižganem strežniku v LAN omrežju.
- * Iskanje naprav (Shelly, Tasmota) in ukazi za vklop/izklop.
+ * Samostojen most za domači strežnik — samo ta datoteka, brez celotnega projekta.
  *
- * Windows:  powershell -File bridge/start.ps1
- * Linux:    ./bridge/start.sh
+ * Windows (PowerShell):
+ *   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/MaliHorvat/smart-home.visionone.si/main/bridge/server.mjs" -OutFile server.mjs
+ *   node server.mjs
+ *
+ * Linux:
+ *   curl -fsSL -o server.mjs https://raw.githubusercontent.com/MaliHorvat/smart-home.visionone.si/main/bridge/server.mjs
+ *   node server.mjs
+ *
+ * Nato v drugem oknu (da je dosegljiv od kjerkoli):
+ *   cloudflared tunnel --url http://localhost:8787
  */
 import dgram from "node:dgram";
 import fs from "node:fs";

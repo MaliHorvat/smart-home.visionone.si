@@ -1,0 +1,9 @@
+{
+  "name": "smarthome-bridge",
+  "private": true,
+  "type": "module",
+  "description": "Majhen program za domači strežnik: poišče releje v LAN. Ne rabiš celotnega projekta.",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

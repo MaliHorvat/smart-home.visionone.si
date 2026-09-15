@@ -30,26 +30,34 @@ npm run dev
 
 Odpri [http://localhost:3000](http://localhost:3000).
 
-## Domači strežnik (most)
+## Domači strežnik (samo ena datoteka)
 
-Na vedno prižganem računalniku v istem WiFi kot naprave:
+Celotnega projekta na strežnik ne rabiš. Dovolj je `bridge/server.mjs`.
 
-```bash
-npm install
-npm run bridge:win
+Windows (PowerShell):
+
+```powershell
+New-Item -ItemType Directory -Force C:\smarthome-bridge | Out-Null
+Set-Location C:\smarthome-bridge
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/MaliHorvat/smart-home.visionone.si/main/bridge/server.mjs" -OutFile server.mjs
+node server.mjs
 ```
 
-Na Linuxu: `npm run bridge` ali `docker compose up -d` (zahteva `network_mode: host`).
+Linux:
 
-Most sam poišče LAN podomrežja, skenira Shelly/Tasmota, žeton shrani v `bridge/token.txt`.
+```bash
+mkdir -p ~/smarthome-bridge && cd ~/smarthome-bridge
+curl -fsSL -o server.mjs https://raw.githubusercontent.com/MaliHorvat/smart-home.visionone.si/main/bridge/server.mjs
+node server.mjs
+```
 
-Ker je spletna aplikacija na Vercelu (HTTPS), most izpostaviš npr. s Cloudflare Tunnel:
+V drugem oknu, da krmiliš od kjerkoli:
 
 ```bash
 cloudflared tunnel --url http://localhost:8787
 ```
 
-V Nastavitvah vpiši HTTPS naslov tunela in žeton, nato **Preizkusi povezavo**. Na strani Odkrivanje pritisni **Naj strežnik poišče naprave**.
+V Nastavitvah vpiši HTTPS naslov tunela in žeton iz `token.txt`, nato Preizkusi povezavo. Na Odkrivanju zaženi iskanje.
 
 ## GitHub
 
