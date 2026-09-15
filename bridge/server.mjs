@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const TOKEN_FILE = path.join(DIR, "token.txt");
+const STATE_FILE = path.join(DIR, "home-state.json");
 const PORT = Number(process.env.PORT || 8787);
 const TIMEOUT_MS = Number(process.env.PROBE_TIMEOUT || 900);
 const SCAN_EVERY_MS = Number(process.env.SCAN_INTERVAL_MS || 5 * 60 * 1000);
@@ -339,6 +340,14 @@ const server = http.createServer(async (req, res) => {
       send(res, 200, inventory);
       return;
     }
+    if (req.method === "GET" && urlPath === "/state") {
+      if (!fs.existsSync(STATE_FILE)) {
+        send(res, 200, { state: null });
+        return;
+      }
+      send(res, 200, { state: JSON.parse(fs.readFileSync(STATE_FILE, "utf8")) });
+      return;
+    }
 
     const body = req.method === "POST" ? await readBody(req) : {};
     if (req.method === "POST" && urlPath === "/scan") {
@@ -351,6 +360,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && urlPath === "/inventory") {
       send(res, 200, inventory);
+      return;
+    }
+    if (req.method === "POST" && urlPath === "/state") {
+      fs.writeFileSync(STATE_FILE, JSON.stringify(body.state || {}, null, 2));
+      send(res, 200, { ok: true });
       return;
     }
     if (req.method === "POST" && urlPath === "/control") {

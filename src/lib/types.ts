@@ -42,6 +42,7 @@ export interface Device {
   offPath?: string;
   pinned?: boolean;
   lastUsed?: number;
+  icon?: string;
   state: DeviceState;
 }
 
@@ -89,6 +90,7 @@ export interface Settings {
 
 export interface HomeState {
   version: number;
+  updatedAt?: number;
   settings: Settings;
   rooms: Room[];
   devices: Device[];

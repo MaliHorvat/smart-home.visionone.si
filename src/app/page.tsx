@@ -3,13 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { AddDeviceModal } from "@/components/AddDeviceModal";
 import { ActionTile, DeviceTile, SceneTile } from "@/components/DeviceTile";
+import { EditDeviceModal } from "@/components/EditDeviceModal";
 import { useHome } from "@/context/HomeContext";
+import type { Device } from "@/lib/types";
 import { cn, formatTime, isStandaloneApp } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { state, error, toggleDevice, runScene, updateDevice, allOff } = useHome();
   const [now, setNow] = useState(() => formatTime());
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [selected, setSelected] = useState<Device | null>(null);
   const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
@@ -40,9 +44,18 @@ export default function DashboardPage() {
           <p className="text-[10px] uppercase tracking-[0.2em] text-sand-400">Hitri dostop</p>
           <h1 className="text-lg font-medium leading-tight">{state.settings.homeName}</h1>
         </div>
-        <p className="text-sm tabular-nums text-sand-100/60">
-          {now} · {onCount} vklopljenih
-        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing((current) => !current)}
+            className={`rounded-xl px-3 py-1.5 text-xs ${editing ? "bg-glow-500 text-ink-950" : "bg-white/10 text-sand-100/70"}`}
+          >
+            {editing ? "Končaj" : "Uredi"}
+          </button>
+          <p className="text-sm tabular-nums text-sand-100/60">
+            {now} · {onCount} vklopljenih
+          </p>
+        </div>
       </div>
 
       {showInstall ? (
@@ -72,6 +85,7 @@ export default function DashboardPage() {
             device={device}
             onToggle={() => toggleDevice(device.id)}
             onPin={() => updateDevice(device.id, { pinned: !device.pinned })}
+            onEdit={editing ? () => setSelected(device) : undefined}
           />
         ))}
         {state.scenes.map((scene) => (
@@ -82,10 +96,13 @@ export default function DashboardPage() {
       </section>
 
       <p className="mt-3 text-center text-[10px] text-sand-100/40">
-        Drži kvadratek, da ga pripneš na vrh — npr. ograja iz avta.
+        {editing
+          ? "Tapni kvadratek za ime in ikono."
+          : "Drži kvadratek, da ga pripneš na vrh — npr. ograja iz avta."}
       </p>
 
       {adding ? <AddDeviceModal onClose={() => setAdding(false)} /> : null}
+      {selected ? <EditDeviceModal device={selected} onClose={() => setSelected(null)} /> : null}
     </div>
   );
 }

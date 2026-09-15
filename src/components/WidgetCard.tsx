@@ -90,7 +90,7 @@ export function WidgetCard({ widget, editing }: { widget: Widget; editing: boole
         <div className="flex h-full items-start justify-between gap-4">
           <div>
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-glow-400">
-              <DeviceIcon kind={device.kind} size={18} />
+              <DeviceIcon kind={device.kind} icon={device.icon} size={18} />
             </div>
             <h3 className="mt-4 text-xl">{device.name}</h3>
             <p className="text-sm text-sand-100/60">{KIND_LABELS[device.kind]}</p>

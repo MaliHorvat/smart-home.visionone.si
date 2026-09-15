@@ -34,6 +34,7 @@ export function AddDeviceModal({
       onPath: onPath || undefined,
       offPath: offPath || undefined,
       pinned,
+      icon: kind,
       state: { on: false, reachable: true },
     });
     onClose();

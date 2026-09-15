@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { bridgeHealth, bridgeInventory, bridgeScan, readDevice, scanSubnet, setDevicePower } from "@/lib/devices";
@@ -13,7 +14,10 @@ import {
   createDefaultState,
   hashPin,
   loadState,
+  normalizeState,
+  preferCloudState,
   saveState,
+  shouldUploadState,
   uid,
 } from "@/lib/storage";
 import { buzz } from "@/lib/utils";
@@ -77,6 +81,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const [discovered, setDiscovered] = useState<DiscoveredDevice[]>([]);
   const [abort, setAbort] = useState<AbortController | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const skipCloudUpload = useRef(true);
+  const cloudTimer = useRef<number | null>(null);
 
   const flash = useCallback((message: string) => {
     setNotice(message);
@@ -92,14 +98,54 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     const already = sessionStorage.getItem(UNLOCK_KEY) === "1";
     setUnlocked(!needsPin || already);
     setReady(true);
-  }, []);
+    fetch("/api/state")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        const cloud = data?.state as HomeState | undefined;
+        if (cloud && preferCloudState(cloud, loaded)) {
+          skipCloudUpload.current = true;
+          setState(normalizeState(cloud));
+          flash("Plošča naložena s strežnika");
+          return;
+        }
+        if (shouldUploadState(loaded, cloud)) {
+          skipCloudUpload.current = true;
+          fetch("/api/state", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ state: { ...loaded, updatedAt: loaded.updatedAt || Date.now() } }),
+          }).catch(() => undefined);
+        }
+      })
+      .catch(() => undefined);
+  }, [flash]);
 
   useEffect(() => {
-    if (ready) saveState(state);
+    if (!ready) return;
+    saveState(state);
+    if (skipCloudUpload.current) {
+      skipCloudUpload.current = false;
+      return;
+    }
+    if (cloudTimer.current) window.clearTimeout(cloudTimer.current);
+    cloudTimer.current = window.setTimeout(() => {
+      fetch("/api/state", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state }),
+      }).catch(() => undefined);
+    }, 800);
+    return () => {
+      if (cloudTimer.current) window.clearTimeout(cloudTimer.current);
+    };
   }, [ready, state]);
 
   const patchState = useCallback((updater: (current: HomeState) => HomeState) => {
-    setState((current) => updater(current));
+    setState((current) => {
+      const next = updater(current);
+      if (next === current) return current;
+      return { ...next, updatedAt: Date.now() };
+    });
   }, []);
 
   const unlock = useCallback(
@@ -475,6 +521,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const resetDemo = useCallback(() => {
     const next = createDefaultState();
     next.settings = state.settings;
+    next.updatedAt = Date.now();
+    skipCloudUpload.current = false;
     setState(next);
     setDiscovered([]);
   }, [state.settings]);
@@ -498,6 +546,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     setState({
       ...createDefaultState(),
       ...next,
+      updatedAt: Date.now(),
       settings: { ...createDefaultState().settings, ...next.settings },
     });
     flash("Nastavitve so uvožene");

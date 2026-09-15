@@ -280,9 +280,10 @@ export default function SettingsPage() {
         </form>
 
         <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
-          <h2 className="text-xl">Varnostna kopija</h2>
+          <h2 className="text-xl">Varnostna kopija in sinhronizacija</h2>
           <p className="mt-2 text-sm text-sand-100/60">
-            Shrani ploščo v datoteko ali jo naloži na nov telefon.
+            Po prijavi se plošča sama shrani na strežnik. Na telefonu se prijavi kot admin —
+            naprave, imena in ikone pridejo z računalnika. Datoteka je samo dodatna kopija.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button

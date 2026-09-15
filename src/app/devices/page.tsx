@@ -1,17 +1,20 @@
 "use client";
 
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { AddDeviceModal } from "@/components/AddDeviceModal";
-import { RoomIcon } from "@/components/RoomIcon";
+import { DeviceIcon } from "@/components/DeviceIcon";
+import { EditDeviceModal } from "@/components/EditDeviceModal";
 import { ToggleSwitch } from "@/components/ToggleSwitch";
 import { useHome } from "@/context/HomeContext";
 import { INTEGRATION_LABELS, KIND_LABELS } from "@/lib/storage";
+import type { Device } from "@/lib/types";
 
 export default function DevicesPage() {
   const { state, toggleDevice, refreshDevice, removeDevice, addWidget } = useHome();
   const [open, setOpen] = useState(false);
   const [roomFilter, setRoomFilter] = useState("all");
+  const [selected, setSelected] = useState<Device | null>(null);
 
   const devices =
     roomFilter === "all"
@@ -66,7 +69,7 @@ export default function DevicesPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <span className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-glow-400">
-                    <RoomIcon name={room?.icon || "house"} />
+                    <DeviceIcon kind={device.kind} icon={device.icon} size={22} />
                   </span>
                   <div>
                     <h2 className="text-xl">{device.name}</h2>
@@ -85,6 +88,14 @@ export default function DevicesPage() {
                 )}
               </div>
               <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelected(device)}
+                  className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm"
+                >
+                  <Pencil size={14} />
+                  Uredi
+                </button>
                 <button
                   type="button"
                   onClick={() => refreshDevice(device.id)}
@@ -117,6 +128,7 @@ export default function DevicesPage() {
       </div>
 
       {open ? <AddDeviceModal onClose={() => setOpen(false)} /> : null}
+      {selected ? <EditDeviceModal device={selected} onClose={() => setSelected(null)} /> : null}
     </div>
   );
 }

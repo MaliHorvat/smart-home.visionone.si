@@ -20,10 +20,12 @@ export function DeviceTile({
   device,
   onToggle,
   onPin,
+  onEdit,
 }: {
   device: Device;
   onToggle: () => void;
   onPin: () => void;
+  onEdit?: () => void;
 }) {
   const held = useRef(false);
   const timer = useRef<number | null>(null);
@@ -35,6 +37,7 @@ export function DeviceTile({
 
   function onPointerDown(event: PointerEvent<HTMLButtonElement>) {
     if (event.button !== 0) return;
+    if (onEdit) return;
     held.current = false;
     timer.current = window.setTimeout(() => {
       held.current = true;
@@ -44,6 +47,10 @@ export function DeviceTile({
 
   function onClick() {
     if (held.current) return;
+    if (onEdit) {
+      onEdit();
+      return;
+    }
     if (device.kind === "sensor") return;
     onToggle();
   }
@@ -71,7 +78,7 @@ export function DeviceTile({
         <Pin size={10} className="absolute right-1.5 top-1.5 text-sand-400" />
       ) : null}
       <span className={cn(active ? "text-glow-400" : "text-sand-100/55")}>
-        <DeviceIcon kind={device.kind} size={22} />
+        <DeviceIcon kind={device.kind} icon={device.icon} size={22} />
       </span>
       <span className="line-clamp-2 w-full text-[11px] font-medium leading-tight">
         {device.name}
