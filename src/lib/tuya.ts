@@ -7,8 +7,11 @@ import {
   tuyaChannelNumber,
   tuyaIsOn,
   tuyaKind,
+  tuyaReadHumidity,
+  tuyaReadTemp,
   tuyaSwitchCode,
   tuyaSwitchCodes,
+  tuyaTempCode,
 } from "./tuya-channels";
 
 export {
@@ -16,6 +19,8 @@ export {
   tuyaChannelNumber,
   tuyaIsOn,
   tuyaKind,
+  tuyaReadHumidity,
+  tuyaReadTemp,
   tuyaSwitchCode,
   tuyaSwitchCodes,
 };
@@ -163,11 +168,12 @@ export type TuyaMappedDevice = {
   on: boolean;
   reachable: boolean;
   category?: string;
+  temperature?: number;
+  humidity?: number;
 };
 
-export function mapTuyaChannels(item: TuyaDeviceRaw): TuyaMappedDevice[] {
-  const id = String(item.id || item.device_id || item.devId || item.uuid || "");
-  const name = String(
+function tuyaBaseName(item: TuyaDeviceRaw, id: string) {
+  return String(
     item.customName ||
       item.custom_name ||
       item.name ||
@@ -176,19 +182,68 @@ export function mapTuyaChannels(item: TuyaDeviceRaw): TuyaMappedDevice[] {
       item.product_name ||
       `Tuya ${id.slice(-4)}`,
   );
+}
+
+function mapTuyaSensors(
+  id: string,
+  name: string,
+  status: Array<{ code: string; value?: unknown }> | undefined,
+  reachable: boolean,
+  category?: string,
+): TuyaMappedDevice[] {
+  const temperature = tuyaReadTemp(status);
+  const humidity = tuyaReadHumidity(status);
+  if (temperature == null && humidity == null) return [];
+  const outdoor = /zunaj|outdoor|outside|vrt|garden|ext/i.test(name);
+  return [
+    {
+      id,
+      name: outdoor || /notri|indoor|inside/i.test(name) ? name : name,
+      kind: "sensor",
+      code: tuyaTempCode(status),
+      channel: 0,
+      on: true,
+      reachable,
+      category,
+      temperature,
+      humidity,
+    },
+  ];
+}
+
+export function mapTuyaChannels(item: TuyaDeviceRaw): TuyaMappedDevice[] {
+  const id = String(item.id || item.device_id || item.devId || item.uuid || "");
+  const name = tuyaBaseName(item, id);
   const codes = tuyaSwitchCodes(item.status);
   const kind = tuyaKind(item.category, name);
-  const online = item.isOnline ?? item.is_online ?? item.online;
-  return codes.map((code, index) => ({
+  const online = item.isOnline ?? item.is_online ?? item.online !== false;
+  const reachable = online !== false;
+  const switches = codes.map((code, index) => ({
     id,
     name: tuyaChannelName(name, code, index, codes.length),
-    kind,
+    kind: kind === "sensor" ? "switch" : kind,
     code,
     channel: tuyaChannelNumber(code, index),
     on: tuyaIsOn(item.status, code),
-    reachable: online !== false,
+    reachable,
     category: item.category,
   }));
+  const sensors = mapTuyaSensors(id, name, item.status, reachable, item.category);
+  if (!switches.length && !sensors.length) {
+    return [
+      {
+        id,
+        name,
+        kind: kind === "sensor" ? "sensor" : kind,
+        code: kind === "sensor" ? "temp_current" : "switch_1",
+        channel: kind === "sensor" ? 0 : 1,
+        on: kind === "sensor",
+        reachable,
+        category: item.category,
+      },
+    ];
+  }
+  return [...switches, ...sensors];
 }
 
 function extractDevices(result: unknown): TuyaDeviceRaw[] {
@@ -306,16 +361,22 @@ async function enrichStatus(
     } catch {
       status = undefined;
     }
-    const channels = codes.length ? codes : ["switch_1"];
+    const switchCodes = sortSwitchCodes(codes.filter((code) => isSwitchDp(code)));
+    const sensors = mapTuyaSensors(id, baseName, status, base.reachable, base.category);
+    const channels = switchCodes.length || sensors.length ? switchCodes : ["switch_1"];
     for (const [index, code] of channels.entries()) {
       next.push({
         ...base,
+        kind: base.kind === "sensor" ? "switch" : base.kind,
         name: tuyaChannelName(baseName, code, index, channels.length),
         code,
         channel: tuyaChannelNumber(code, index),
         on: tuyaIsOn(status, code),
+        temperature: undefined,
+        humidity: undefined,
       });
     }
+    next.push(...sensors);
   }
   return next;
 }

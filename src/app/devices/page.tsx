@@ -25,13 +25,13 @@ export default function DevicesPage() {
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-sand-400">Naprave</p>
-          <h1 className="mt-2 text-4xl">Vse inštalacije</h1>
+          <p className="text-xs text-ha-muted">Naprave</p>
+          <h1 className="mt-2 text-3xl font-medium">Vse inštalacije</h1>
         </div>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950"
+          className="ha-btn flex items-center gap-2"
         >
           <Plus size={16} />
           Dodaj napravo
@@ -42,7 +42,7 @@ export default function DevicesPage() {
         <button
           type="button"
           onClick={() => setRoomFilter("all")}
-          className={`rounded-full px-4 py-2 text-sm ${roomFilter === "all" ? "bg-white/10" : "bg-white/5"}`}
+          className={`rounded-full px-4 py-2 text-sm ${roomFilter === "all" ? "bg-white shadow-panel" : "bg-transparent text-ha-muted"}`}
         >
           Vse
         </button>
@@ -51,7 +51,7 @@ export default function DevicesPage() {
             key={room.id}
             type="button"
             onClick={() => setRoomFilter(room.id)}
-            className={`rounded-full px-4 py-2 text-sm ${roomFilter === room.id ? "bg-white/10" : "bg-white/5"}`}
+            className={`rounded-full px-4 py-2 text-sm ${roomFilter === room.id ? "bg-white shadow-panel" : "bg-transparent text-ha-muted"}`}
           >
             {room.name}
           </button>
@@ -64,19 +64,19 @@ export default function DevicesPage() {
           return (
             <article
               key={device.id}
-              className="rounded-3xl border border-white/10 bg-ink-800/90 p-5 shadow-panel"
+              className="ha-panel"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <span className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-glow-400">
+                  <span className="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-sky-50 text-ha-primary">
                     <DeviceIcon kind={device.kind} icon={device.icon} size={22} />
                   </span>
                   <div>
                     <h2 className="text-xl">{device.name}</h2>
-                    <p className="text-sm text-sand-100/60">
+                    <p className="text-sm text-ha-muted">
                       {room?.name} · {KIND_LABELS[device.kind]} · {INTEGRATION_LABELS[device.integration]}
                     </p>
-                    <p className="mt-1 text-xs text-sand-100/45">{device.address}</p>
+                    <p className="mt-1 text-xs text-ha-muted">{device.address}</p>
                   </div>
                 </div>
                 {device.kind !== "sensor" ? (
@@ -84,6 +84,9 @@ export default function DevicesPage() {
                 ) : (
                   <p className="text-2xl">
                     {device.state.temperature?.toFixed(1) ?? "—"}°
+                    {typeof device.state.humidity === "number"
+                      ? ` · ${device.state.humidity.toFixed(0)}%`
+                      : ""}
                   </p>
                 )}
               </div>
@@ -91,7 +94,7 @@ export default function DevicesPage() {
                 <button
                   type="button"
                   onClick={() => setSelected(device)}
-                  className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm"
+                  className="flex items-center gap-2 rounded-xl bg-ha-bg px-3 py-2 text-sm"
                 >
                   <Pencil size={14} />
                   Uredi
@@ -99,7 +102,7 @@ export default function DevicesPage() {
                 <button
                   type="button"
                   onClick={() => refreshDevice(device.id)}
-                  className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm"
+                  className="flex items-center gap-2 rounded-xl bg-ha-bg px-3 py-2 text-sm"
                 >
                   <RefreshCw size={14} />
                   Osveži
@@ -109,14 +112,14 @@ export default function DevicesPage() {
                   onClick={() =>
                     addWidget({ type: "device", size: "sm", deviceId: device.id })
                   }
-                  className="rounded-xl bg-white/5 px-3 py-2 text-sm"
+                  className="rounded-xl bg-ha-bg px-3 py-2 text-sm"
                 >
                   Na ploščo
                 </button>
                 <button
                   type="button"
                   onClick={() => removeDevice(device.id)}
-                  className="ml-auto flex items-center gap-2 rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-200"
+                  className="ml-auto flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700"
                 >
                   <Trash2 size={14} />
                   Odstrani

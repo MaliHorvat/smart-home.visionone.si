@@ -19,32 +19,32 @@ export default function ScenesPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <p className="text-xs uppercase tracking-[0.24em] text-sand-400">Prizori</p>
-      <h1 className="mt-2 text-4xl">Vklopi več naprav naenkrat</h1>
+      <p className="text-xs text-ha-muted">Prizori</p>
+      <h1 className="mt-2 text-3xl font-medium">Vklopi več naprav naenkrat</h1>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="grid gap-3">
           {state.scenes.map((scene) => (
             <article
               key={scene.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/10 bg-ink-800 px-5 py-4"
+              className="ha-panel flex flex-wrap items-center justify-between gap-3 px-5 py-4"
             >
               <div>
                 <h2 className="text-xl">{scene.name}</h2>
-                <p className="text-sm text-sand-100/60">{scene.actions.length} dejanj</p>
+                <p className="text-sm text-ha-muted">{scene.actions.length} dejanj</p>
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => addWidget({ type: "scene", size: "sm", sceneId: scene.id })}
-                  className="rounded-2xl bg-white/10 px-4 py-2 text-sm"
+                  className="ha-btn-ghost px-4 py-2 text-sm"
                 >
                   Na ploščo
                 </button>
                 <button
                   type="button"
                   onClick={() => runScene(scene.id)}
-                  className="rounded-2xl bg-glow-500 px-4 py-2 font-medium text-ink-950"
+                  className="ha-btn px-4 py-2 text-sm"
                 >
                   Zaženi
                 </button>
@@ -53,19 +53,19 @@ export default function ScenesPage() {
           ))}
         </section>
 
-        <form onSubmit={onSubmit} className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+        <form onSubmit={onSubmit} className="ha-panel">
           <h2 className="text-xl">Nov prizor</h2>
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Ime prizora"
-            className="mt-4 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="ha-input mt-4 w-full"
           />
           <div className="mt-4 grid gap-2">
             {state.devices
               .filter((device) => device.kind !== "sensor")
               .map((device) => (
-                <label key={device.id} className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+                <label key={device.id} className="flex items-center justify-between rounded-xl bg-ha-bg px-4 py-3">
                   <span>{device.name}</span>
                   <select
                     value={selected[device.id] === undefined ? "" : selected[device.id] ? "on" : "off"}
@@ -78,7 +78,7 @@ export default function ScenesPage() {
                         return next;
                       });
                     }}
-                    className="rounded-xl bg-ink-900 px-3 py-2"
+                    className="ha-input px-3 py-2"
                   >
                     <option value="">Preskoči</option>
                     <option value="on">Vklopi</option>
@@ -87,7 +87,7 @@ export default function ScenesPage() {
                 </label>
               ))}
           </div>
-          <button type="submit" className="mt-4 w-full rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950">
+          <button type="submit" className="ha-btn mt-4 w-full">
             Shrani prizor
           </button>
         </form>

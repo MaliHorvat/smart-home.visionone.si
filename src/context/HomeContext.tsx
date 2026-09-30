@@ -593,6 +593,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         channel?: number;
         on: boolean;
         reachable: boolean;
+        temperature?: number;
+        humidity?: number;
       }>
     ).filter((item) => !existing.has(tuyaChannelKey(item.id, item.code)));
 
@@ -603,13 +605,22 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         ...imported.map((item) => ({
           id: uid("tuya"),
           name: item.name,
-          roomId: current.rooms[0]?.id || "living",
+          roomId:
+            /zunaj|outdoor|vrt|garden/i.test(item.name)
+              ? current.rooms.find((room) => room.id === "outdoor")?.id || current.rooms[0]?.id || "living"
+              : current.rooms[0]?.id || "living",
           kind: item.kind,
           integration: "tuya" as const,
           address: item.id,
           entityId: item.code,
-          channel: item.channel || tuyaChannelNumber(item.code),
-          state: { on: item.on, reachable: item.reachable },
+          channel: item.channel ?? tuyaChannelNumber(item.code),
+          icon: item.kind === "sensor" ? "sensor" : item.kind,
+          state: {
+            on: item.on,
+            reachable: item.reachable,
+            temperature: item.temperature,
+            humidity: item.humidity,
+          },
         })),
       ],
     }));

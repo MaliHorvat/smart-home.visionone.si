@@ -32,12 +32,12 @@ export function WidgetCard({ widget, editing }: { widget: Widget; editing: boole
   const scene = state.scenes.find((item) => item.id === widget.sceneId);
   const room = state.rooms.find((item) => item.id === widget.roomId);
   const roomDevices = state.devices.filter((item) => item.roomId === widget.roomId);
-  const onCount = state.devices.filter((item) => item.state.on).length;
+  const onCount = state.devices.filter((item) => item.state.on && item.kind !== "sensor").length;
 
   return (
     <article
       className={cn(
-        "relative overflow-hidden rounded-3xl border border-white/10 bg-ink-800/90 p-5 shadow-panel",
+        "relative overflow-hidden rounded-xl bg-white p-5 shadow-panel",
         `span-${widget.size}`,
       )}
     >
@@ -45,21 +45,21 @@ export function WidgetCard({ widget, editing }: { widget: Widget; editing: boole
         <div className="absolute right-3 top-3 flex gap-1">
           <button
             type="button"
-            className="rounded-lg bg-white/10 p-1"
+            className="rounded-lg bg-ha-bg p-1 text-ha-muted"
             onClick={() => moveWidget(widget.id, "left")}
           >
             <ChevronLeft size={14} />
           </button>
           <button
             type="button"
-            className="rounded-lg bg-white/10 p-1"
+            className="rounded-lg bg-ha-bg p-1 text-ha-muted"
             onClick={() => moveWidget(widget.id, "right")}
           >
             <ChevronRight size={14} />
           </button>
           <button
             type="button"
-            className="rounded-lg bg-red-500/20 p-1 text-red-200"
+            className="rounded-lg bg-red-50 p-1 text-red-700"
             onClick={() => removeWidget(widget.id)}
           >
             <Trash2 size={14} />
@@ -69,33 +69,38 @@ export function WidgetCard({ widget, editing }: { widget: Widget; editing: boole
 
       {widget.type === "clock" ? (
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-sand-400">Zdaj</p>
+          <p className="text-xs text-ha-muted">Zdaj</p>
           <p className="mt-3 flex items-center gap-2 text-4xl font-medium">
-            <Clock3 className="text-sand-400" />
+            <Clock3 className="text-ha-primary" />
             {formatTime(now)}
           </p>
-          <p className="mt-2 capitalize text-sand-100/70">{formatDate(now)}</p>
+          <p className="mt-2 capitalize text-ha-muted">{formatDate(now)}</p>
         </div>
       ) : null}
 
       {widget.type === "status" ? (
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-sand-400">Stanje hiše</p>
+          <p className="text-xs text-ha-muted">Stanje hiše</p>
           <p className="mt-3 text-4xl font-medium">{onCount}</p>
-          <p className="text-sand-100/70">vklopljenih naprav od {state.devices.length}</p>
+          <p className="text-ha-muted">vklopljenih naprav od {state.devices.length}</p>
         </div>
       ) : null}
 
       {widget.type === "device" && device ? (
         <div className="flex h-full items-start justify-between gap-4">
           <div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-glow-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-50 text-ha-primary">
               <DeviceIcon kind={device.kind} icon={device.icon} size={18} />
             </div>
-            <h3 className="mt-4 text-xl">{device.name}</h3>
-            <p className="text-sm text-sand-100/60">{KIND_LABELS[device.kind]}</p>
+            <h3 className="mt-4 text-xl font-medium">{device.name}</h3>
+            <p className="text-sm text-ha-muted">{KIND_LABELS[device.kind]}</p>
             {typeof device.state.temperature === "number" ? (
-              <p className="mt-3 text-2xl">{device.state.temperature.toFixed(1)}°</p>
+              <p className="mt-3 text-2xl">
+                {device.state.temperature.toFixed(1)}°
+                {typeof device.state.humidity === "number"
+                  ? ` · ${device.state.humidity.toFixed(0)}%`
+                  : ""}
+              </p>
             ) : null}
           </div>
           {device.kind !== "sensor" ? (
@@ -110,11 +115,11 @@ export function WidgetCard({ widget, editing }: { widget: Widget; editing: boole
           onClick={() => runScene(scene.id)}
           className="flex h-full w-full flex-col items-start text-left"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sand-500/20 text-sand-400">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-50 text-ha-primary">
             {scene.icon === "door-closed" ? <DoorClosed size={18} /> : <Clapperboard size={18} />}
           </span>
-          <span className="mt-4 text-xl">{scene.name}</span>
-          <span className="text-sm text-sand-100/60">Zaženi prizor</span>
+          <span className="mt-4 text-xl font-medium">{scene.name}</span>
+          <span className="text-sm text-ha-muted">Zaženi prizor</span>
         </button>
       ) : null}
 
@@ -122,15 +127,15 @@ export function WidgetCard({ widget, editing }: { widget: Widget; editing: boole
         <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-glow-400">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-50 text-ha-primary">
                 <RoomIcon name={room.icon} />
               </span>
               <div>
-                <h3 className="text-xl">{room.name}</h3>
-                <p className="text-sm text-sand-100/60">{roomDevices.length} naprav</p>
+                <h3 className="text-xl font-medium">{room.name}</h3>
+                <p className="text-sm text-ha-muted">{roomDevices.length} naprav</p>
               </div>
             </div>
-            <Sparkles className="text-sand-400" size={18} />
+            <Sparkles className="text-ha-muted" size={18} />
           </div>
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             {roomDevices.map((item) => (
@@ -139,12 +144,12 @@ export function WidgetCard({ widget, editing }: { widget: Widget; editing: boole
                 type="button"
                 onClick={() => toggleDevice(item.id)}
                 className={cn(
-                  "flex items-center justify-between rounded-2xl px-3 py-2 text-left",
-                  item.state.on ? "bg-glow-500/15" : "bg-white/5",
+                  "flex items-center justify-between rounded-xl px-3 py-2 text-left",
+                  item.state.on ? "bg-ha-onSoft" : "bg-ha-bg",
                 )}
               >
                 <span>{item.name}</span>
-                <span className="text-xs text-sand-100/60">{item.state.on ? "ON" : "OFF"}</span>
+                <span className="text-xs text-ha-muted">{item.state.on ? "ON" : "OFF"}</span>
               </button>
             ))}
           </div>

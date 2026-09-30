@@ -18,7 +18,7 @@ export function ToggleSwitch({
       onClick={onChange}
       className={cn(
         "relative h-8 w-14 rounded-full transition",
-        checked ? "bg-glow-500" : "bg-ink-600",
+        checked ? "bg-ha-on" : "bg-slate-300",
         disabled && "opacity-50",
       )}
     >

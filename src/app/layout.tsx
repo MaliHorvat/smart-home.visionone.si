@@ -1,19 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit } from "next/font/google";
+import { Roboto } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import { HomeProvider } from "@/context/HomeContext";
 import "./globals.css";
 
-const outfit = Outfit({
+const roboto = Roboto({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  weight: ["400", "500", "700"],
+  variable: "--font-roboto",
 });
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#070b12",
+  themeColor: "#03a9f4",
 };
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   description: "Lastna nadzorna plošča za pametne inštalacije, vklop in izklop naprav.",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Pametni dom",
   },
 };
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="sl">
-      <body className={`${outfit.variable} font-sans antialiased`}>
+      <body className={`${roboto.variable} font-sans antialiased`}>
         <HomeProvider>
           <AppShell>{children}</AppShell>
         </HomeProvider>

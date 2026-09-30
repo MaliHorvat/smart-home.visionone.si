@@ -20,6 +20,7 @@ export function AddDeviceModal({
   const [onPath, setOnPath] = useState("");
   const [offPath, setOffPath] = useState("");
   const [pinned, setPinned] = useState(preset?.kind === "gate");
+  const [tuyaCode, setTuyaCode] = useState(preset?.kind === "sensor" ? "temp_current" : "switch_1");
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -30,7 +31,11 @@ export function AddDeviceModal({
       kind,
       roomId,
       entityId:
-        integration === "homeassistant" || integration === "tuya" ? address : undefined,
+        integration === "homeassistant"
+          ? address
+          : integration === "tuya"
+            ? tuyaCode || (kind === "sensor" ? "temp_current" : "switch_1")
+            : undefined,
       onPath: onPath || undefined,
       offPath: offPath || undefined,
       pinned,
@@ -41,12 +46,9 @@ export function AddDeviceModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 px-4">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-lg rounded-3xl border border-white/10 bg-ink-800 p-6 shadow-panel"
-      >
-        <h2 className="text-2xl">Dodaj napravo</h2>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4">
+      <form onSubmit={onSubmit} className="ha-panel max-h-[90vh] w-full max-w-lg overflow-y-auto p-6">
+        <h2 className="text-2xl font-medium">Dodaj napravo</h2>
         <div className="mt-5 grid gap-4">
           <label className="grid gap-2 text-sm">
             Ime
@@ -54,7 +56,7 @@ export function AddDeviceModal({
               required
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+              className="ha-input"
             />
           </label>
           <label className="grid gap-2 text-sm">
@@ -62,7 +64,7 @@ export function AddDeviceModal({
             <select
               value={integration}
               onChange={(event) => setIntegration(event.target.value as Integration)}
-              className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+              className="ha-input"
             >
               <option value="shelly">Shelly</option>
               <option value="tasmota">Tasmota</option>
@@ -89,9 +91,23 @@ export function AddDeviceModal({
                     ? "bfxxxxxxxx"
                     : "192.168.1.50"
               }
-              className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+              className="ha-input"
             />
           </label>
+          {integration === "tuya" ? (
+            <label className="grid gap-2 text-sm">
+              Tuya koda
+              <input
+                value={tuyaCode}
+                onChange={(event) => setTuyaCode(event.target.value)}
+                placeholder={kind === "sensor" ? "temp_current" : "switch_1"}
+                className="ha-input"
+              />
+              <span className="text-xs text-ha-muted">
+                Za temperaturni senzor vpiši temp_current. Za rele switch_1, switch_2 …
+              </span>
+            </label>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2 text-sm">
               Tip
@@ -101,8 +117,9 @@ export function AddDeviceModal({
                   const next = event.target.value as DeviceKind;
                   setKind(next);
                   if (next === "gate") setPinned(true);
+                  if (next === "sensor") setTuyaCode("temp_current");
                 }}
-                className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+                className="ha-input"
               >
                 <option value="light">Luč</option>
                 <option value="switch">Stikalo</option>
@@ -118,7 +135,7 @@ export function AddDeviceModal({
               <select
                 value={roomId}
                 onChange={(event) => setRoomId(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+                className="ha-input"
               >
                 {state.rooms.map((room) => (
                   <option key={room.id} value={room.id}>
@@ -135,7 +152,7 @@ export function AddDeviceModal({
                 <input
                   value={onPath}
                   onChange={(event) => setOnPath(event.target.value)}
-                  className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+                  className="ha-input"
                 />
               </label>
               <label className="grid gap-2 text-sm">
@@ -143,7 +160,7 @@ export function AddDeviceModal({
                 <input
                   value={offPath}
                   onChange={(event) => setOffPath(event.target.value)}
-                  className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+                  className="ha-input"
                 />
               </label>
             </>
@@ -153,16 +170,16 @@ export function AddDeviceModal({
               type="checkbox"
               checked={pinned}
               onChange={(event) => setPinned(event.target.checked)}
-              className="h-4 w-4 accent-glow-500"
+              className="h-4 w-4 accent-ha-primary"
             />
             Pripni na vrh plošče (hiter dostop, npr. ograja)
           </label>
         </div>
         <div className="mt-6 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="rounded-2xl px-4 py-3 text-sand-100/70">
+          <button type="button" onClick={onClose} className="rounded-xl px-4 py-3 text-ha-muted">
             Prekliči
           </button>
-          <button type="submit" className="rounded-2xl bg-glow-500 px-5 py-3 font-medium text-ink-950">
+          <button type="submit" className="ha-btn px-5">
             Shrani
           </button>
         </div>

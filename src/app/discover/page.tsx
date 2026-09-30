@@ -36,23 +36,24 @@ export default function DiscoverPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <p className="text-xs uppercase tracking-[0.24em] text-sand-400">Odkrivanje</p>
-      <h1 className="mt-2 text-4xl">Tuya in iskanje naprav</h1>
-        <p className="mt-3 max-w-3xl text-sand-100/65">
+      <p className="text-xs text-ha-muted">Odkrivanje</p>
+      <h1 className="mt-2 text-3xl font-medium">Tuya in iskanje naprav</h1>
+        <p className="mt-3 max-w-3xl text-ha-muted">
           Tuya / Smart Life releji niso vidni na WiFi skenu — krmiliš jih prek Tuya oblaka.
           Če ima en modul več relejev, uvoz naredi ločen kvadratek za vsako stikalo.
+          Temperaturni senzorji (notri ali zunaj) se uvozijo kot kartice s temperaturo.
           Domači strežnik poišče samo Shelly in Tasmota naprave z lokalnim HTTP.
         </p>
 
-      <article className="mt-6 rounded-3xl border border-glow-500/20 bg-ink-800 p-5">
-        <h2 className="text-xl">Tuya / Smart Life</h2>
-        <p className="mt-2 text-sm leading-6 text-sand-100/70">
+      <article className="mt-6 ha-panel">
+        <h2 className="text-xl font-medium">Tuya / Smart Life</h2>
+        <p className="mt-2 text-sm leading-6 text-ha-muted">
           Če luč prižigaš v Tuya aplikaciji, jo uvozi od tu. Najprej v Nastavitvah vnesi Access ID
           in Access Secret s{" "}
-          <a className="text-glow-400 underline" href="https://iot.tuya.com" target="_blank" rel="noreferrer">
+          <a className="text-ha-primary underline" href="https://iot.tuya.com" target="_blank" rel="noreferrer">
             iot.tuya.com
           </a>
-          .
+          . Uvoz doda tudi temperaturne senzorje, če jih Tuya javi.
         </p>
         <button
           type="button"
@@ -64,7 +65,7 @@ export default function DiscoverPage() {
               setTuyaCount(count);
               if (count === 0) {
                 setTuyaHint(
-                  "Ni novih stikal. Če je modul že uvožen kot ena naprava, jo odpri na plošči: Uredi → število relejev 4 → Dodaj stikala na ploščo. Ali znova uvozi.",
+                  "Ni novih stikal. Če je modul že uvožen kot ena naprava, jo odpri na plošči: Uredi → število relejev 4 → Dodaj stikala na ploščo. Senzor lahko dodaš tudi ročno: Dodaj napravo → Tuya → tip Senzor.",
                 );
               }
             } catch (err) {
@@ -72,33 +73,33 @@ export default function DiscoverPage() {
             }
           }}
           disabled={!tuyaReady}
-          className="mt-4 rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-40"
+          className="ha-btn mt-4"
         >
           Uvozi Tuya naprave
         </button>
         {!tuyaReady ? (
-          <p className="mt-3 text-sm text-sand-100/60">
+          <p className="mt-3 text-sm text-ha-muted">
             Najprej v Nastavitvah vnesi Tuya Access ID in Access Secret.
           </p>
         ) : null}
         {tuyaCount !== null ? (
-          <p className="mt-3 text-sm text-glow-400">
+          <p className="mt-3 text-sm text-ha-primary">
             {tuyaCount === 0 ? "Ni novih Tuya naprav za dodati." : `Dodanih ${tuyaCount} Tuya naprav na ploščo.`}
           </p>
         ) : null}
-        {tuyaHint ? <p className="mt-3 text-sm text-sand-100/70">{tuyaHint}</p> : null}
-        {tuyaError ? <p className="mt-3 text-sm text-red-300">{tuyaError}</p> : null}
+        {tuyaHint ? <p className="mt-3 text-sm text-ha-muted">{tuyaHint}</p> : null}
+        {tuyaError ? <p className="mt-3 text-sm text-red-600">{tuyaError}</p> : null}
       </article>
 
-      <article className="mt-6 rounded-3xl border border-white/10 bg-ink-800 p-5">
-        <h2 className="text-xl">Domači strežnik</h2>
+      <article className="mt-6 ha-panel">
+        <h2 className="text-xl font-medium">Domači strežnik</h2>
         {!configured ? (
-          <p className="mt-3 text-sm leading-6 text-sand-100/70">
+          <p className="mt-3 text-sm leading-6 text-ha-muted">
             Najprej v Nastavitvah poveži most: na strežnik gre samo ena datoteka, ne celoten
             projekt. Tam so tudi ukazi za kopiranje.
           </p>
         ) : (
-          <p className="mt-3 text-sm text-sand-100/70">
+          <p className="mt-3 text-sm text-ha-muted">
             Most: {state.settings.bridgeUrl}
           </p>
         )}
@@ -107,7 +108,7 @@ export default function DiscoverPage() {
             type="button"
             onClick={scanViaBridge}
             disabled={!configured || scanning}
-            className="rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-40"
+            className="ha-btn"
           >
             {scanning ? "Strežnik išče ..." : "Naj strežnik poišče naprave"}
           </button>
@@ -118,48 +119,48 @@ export default function DiscoverPage() {
               setAdded(count);
             }}
             disabled={discovered.length === 0}
-            className="rounded-2xl bg-white/10 px-4 py-3 disabled:opacity-40"
+            className="ha-btn-ghost disabled:opacity-40"
           >
             Dodaj vse najdene
           </button>
         </div>
         {scanning ? (
-          <p className="mt-3 text-sm text-sand-100/60">
+          <p className="mt-3 text-sm text-ha-muted">
             Sken traja do minute. Strežnik pregleda celotno omrežje, rezultat se pokaže tukaj.
           </p>
         ) : null}
         {added !== null ? (
-          <p className="mt-3 text-sm text-glow-400">
+          <p className="mt-3 text-sm text-ha-primary">
             {added === 0 ? "Te naprave so že na plošči." : `Dodanih ${added} naprav na ploščo.`}
           </p>
         ) : null}
       </article>
 
-      {error ? <p className="mt-6 text-sm text-red-300">{error}</p> : null}
+      {error ? <p className="mt-6 text-sm text-red-600">{error}</p> : null}
 
       <section className="mt-8">
         <h2 className="text-2xl">Najdene naprave</h2>
         <div className="mt-4 grid gap-3">
           {discovered.length === 0 ? (
-            <p className="rounded-3xl border border-dashed border-white/10 px-5 py-8 text-sand-100/55">
+            <p className="rounded-2xl border border-dashed border-ha-line px-5 py-8 text-ha-muted">
               Tuya releja tu ne bo. Za Shelly/Tasmota pritisni iskanje, ko most teče.
             </p>
           ) : (
             discovered.map((item) => (
               <article
                 key={`${item.integration}-${item.ip}`}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/10 bg-ink-800 px-5 py-4"
+                className="ha-panel flex flex-wrap items-center justify-between gap-3 px-5 py-4"
               >
                 <div>
-                  <h3 className="text-lg">{item.name}</h3>
-                  <p className="text-sm text-sand-100/60">
+                  <h3 className="text-lg font-medium">{item.name}</h3>
+                  <p className="text-sm text-ha-muted">
                     {item.ip} · {item.integration} · {item.detail}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelected(item)}
-                  className="rounded-2xl bg-glow-500 px-4 py-2 font-medium text-ink-950"
+                  className="ha-btn px-4 py-2 text-sm"
                 >
                   Dodaj
                 </button>
@@ -169,9 +170,9 @@ export default function DiscoverPage() {
         </div>
       </section>
 
-      <article className="mt-8 rounded-3xl border border-white/10 bg-ink-800 p-5">
-        <h2 className="text-xl">Home Assistant</h2>
-        <p className="mt-2 text-sm text-sand-100/60">Če HA že zbira naprave, jih uvozi tukaj.</p>
+      <article className="mt-8 ha-panel">
+        <h2 className="text-xl font-medium">Home Assistant</h2>
+        <p className="mt-2 text-sm text-ha-muted">Če HA že zbira naprave, jih uvozi tukaj.</p>
         <button
           type="button"
           onClick={async () => {
@@ -184,14 +185,14 @@ export default function DiscoverPage() {
             }
           }}
           disabled={!state.settings.haUrl || !state.settings.haToken}
-          className="mt-4 rounded-2xl bg-white/10 px-4 py-3 disabled:opacity-40"
+          className="ha-btn-ghost mt-4 disabled:opacity-40"
         >
           Uvozi entitete
         </button>
         {haCount !== null ? (
-          <p className="mt-3 text-sm text-glow-400">Dodanih {haCount} naprav.</p>
+          <p className="mt-3 text-sm text-ha-primary">Dodanih {haCount} naprav.</p>
         ) : null}
-        {haError ? <p className="mt-3 text-sm text-red-300">{haError}</p> : null}
+        {haError ? <p className="mt-3 text-sm text-red-600">{haError}</p> : null}
       </article>
 
       {selected ? (

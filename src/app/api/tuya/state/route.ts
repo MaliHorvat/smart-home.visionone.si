@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { tuyaIsOn, tuyaRequest, tuyaToken } from "@/lib/tuya";
+import { tuyaIsOn, tuyaReadHumidity, tuyaReadTemp, tuyaRequest, tuyaToken } from "@/lib/tuya";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -23,11 +23,15 @@ export async function POST(request: Request) {
       accessToken: token.access_token,
       path: `/v1.0/devices/${deviceId}/status`,
     });
+    const temperature = tuyaReadTemp(data.result);
+    const humidity = tuyaReadHumidity(data.result);
     return NextResponse.json({
       state: {
-        on: tuyaIsOn(data.result, code),
+        on: temperature != null || humidity != null ? true : tuyaIsOn(data.result, code),
         reachable: true,
         lastSeen: new Date().toISOString(),
+        temperature,
+        humidity,
       },
     });
   } catch (error) {

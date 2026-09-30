@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
@@ -12,16 +12,13 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(61, 202, 168, 0.16), transparent 50%),
-    radial-gradient(900px 500px at 110% 0%, rgba(201, 163, 106, 0.14), transparent 45%),
-    #070b12;
-  color: #f7f1e6;
+  background: #f2f4f6;
+  color: #212121;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #243049 transparent;
+  scrollbar-color: #cfd8dc transparent;
 }
 
 input,
@@ -31,9 +28,39 @@ button {
   font: inherit;
 }
 
+.ha-panel {
+  @apply rounded-2xl border border-ha-line bg-white p-5 shadow-panel;
+}
+
+.ha-input {
+  @apply rounded-xl border border-ha-line bg-ha-bg px-4 py-3 text-ha-text outline-none focus:border-ha-primary;
+}
+
+.ha-btn {
+  @apply rounded-xl bg-ha-primary px-4 py-3 font-medium text-white disabled:opacity-40;
+}
+
+.ha-btn-ghost {
+  @apply rounded-xl bg-ha-bg px-4 py-3 text-ha-text;
+}
+
+.border-white\/10,
+.border-white\/5 {
+  border-color: #e4e7eb !important;
+}
+
+.bg-white\/10,
+.bg-white\/5 {
+  background-color: #eceff1 !important;
+}
+
+.text-ink-950 {
+  color: #ffffff;
+}
+
 .grid-tiles {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
 }
 
@@ -41,66 +68,31 @@ button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-@media (min-width: 640px) {
-  .grid-tiles,
-  .grid-tiles-3 {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+@media (min-width: 768px) {
+  .grid-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.65rem;
   }
-}
 
-@media (min-width: 640px) {
-  .grid-tiles {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 0.65rem;
+  .grid-tiles-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1024px) {
   .grid-tiles {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 .grid-dashboard {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
 
-@media (max-width: 1024px) {
-  .grid-dashboard {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .grid-dashboard {
-    grid-template-columns: 1fr;
-  }
-}
-
-.span-sm {
-  grid-column: span 1;
-}
-
-.span-md {
-  grid-column: span 2;
-}
-
+.span-sm,
+.span-md,
 .span-lg {
-  grid-column: span 4;
-}
-
-@media (max-width: 1024px) {
-  .span-lg {
-    grid-column: span 2;
-  }
-}
-
-@media (max-width: 640px) {
-  .span-md,
-  .span-lg {
-    grid-column: span 1;
-  }
+  grid-column: span 1;
 }

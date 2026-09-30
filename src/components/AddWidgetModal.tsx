@@ -32,19 +32,16 @@ export function AddWidgetModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 px-4">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-lg rounded-3xl border border-white/10 bg-ink-800 p-6 shadow-panel"
-      >
-        <h2 className="text-2xl">Dodaj ploščico</h2>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4">
+      <form onSubmit={onSubmit} className="ha-panel w-full max-w-lg p-6">
+        <h2 className="text-2xl font-medium">Dodaj ploščico</h2>
         <div className="mt-5 grid gap-4">
           <label className="grid gap-2 text-sm">
             Tip
             <select
               value={type}
               onChange={(event) => setType(event.target.value as WidgetType)}
-              className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+              className="ha-input"
             >
               <option value="device">Naprava</option>
               <option value="scene">Prizor</option>
@@ -58,7 +55,7 @@ export function AddWidgetModal({ onClose }: { onClose: () => void }) {
             <select
               value={size}
               onChange={(event) => setSize(event.target.value as WidgetSize)}
-              className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+              className="ha-input"
             >
               <option value="sm">Majhna</option>
               <option value="md">Srednja</option>
@@ -71,7 +68,7 @@ export function AddWidgetModal({ onClose }: { onClose: () => void }) {
               <select
                 value={deviceId}
                 onChange={(event) => setDeviceId(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+                className="ha-input"
               >
                 {state.devices.map((device) => (
                   <option key={device.id} value={device.id}>
@@ -87,7 +84,7 @@ export function AddWidgetModal({ onClose }: { onClose: () => void }) {
               <select
                 value={sceneId}
                 onChange={(event) => setSceneId(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+                className="ha-input"
               >
                 {state.scenes.map((scene) => (
                   <option key={scene.id} value={scene.id}>
@@ -103,7 +100,7 @@ export function AddWidgetModal({ onClose }: { onClose: () => void }) {
               <select
                 value={roomId}
                 onChange={(event) => setRoomId(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+                className="ha-input"
               >
                 {state.rooms.map((room) => (
                   <option key={room.id} value={room.id}>
@@ -115,14 +112,10 @@ export function AddWidgetModal({ onClose }: { onClose: () => void }) {
           ) : null}
         </div>
         <div className="mt-6 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="rounded-2xl px-4 py-3 text-sand-100/70">
+          <button type="button" onClick={onClose} className="rounded-xl px-4 py-3 text-ha-muted">
             Prekliči
           </button>
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="rounded-2xl bg-glow-500 px-5 py-3 font-medium text-ink-950 disabled:opacity-40"
-          >
+          <button type="submit" disabled={!canSubmit} className="ha-btn px-5 disabled:opacity-40">
             Dodaj
           </button>
         </div>

@@ -37,43 +37,43 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <p className="text-xs uppercase tracking-[0.24em] text-sand-400">Nastavitve</p>
-      <h1 className="mt-2 text-4xl">Dom, most in zaščita</h1>
+      <p className="text-xs text-ha-muted">Nastavitve</p>
+      <h1 className="mt-2 text-3xl font-medium">Dom, most in zaščita</h1>
 
       <section className="mt-8 grid gap-4">
-        <label className="grid gap-2 rounded-3xl border border-white/10 bg-ink-800 p-5">
+        <label className="grid gap-2 ha-panel">
           Ime doma
           <input
             value={state.settings.homeName}
             onChange={(event) => updateSettings({ homeName: event.target.value })}
-            className="rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="ha-input"
           />
         </label>
 
-        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
-          <h2 className="text-xl">Velikost kvadratkov</h2>
-          <p className="mt-2 text-sm text-sand-100/60">Na telefonu. 3 so lažje za zadeti v avtu.</p>
+        <div className="ha-panel">
+          <h2 className="text-xl">Velikost kartic</h2>
+          <p className="mt-2 text-sm text-ha-muted">Na telefonu. 2 stolpca sta kot v Home Assistant.</p>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => updateSettings({ tileColumns: 4 })}
-              className={`rounded-2xl px-4 py-3 ${state.settings.tileColumns !== 3 ? "bg-glow-500 text-ink-950" : "bg-white/10"}`}
+              className={`rounded-xl px-4 py-3 ${state.settings.tileColumns !== 3 ? "bg-ha-primary text-white" : "ha-btn-ghost"}`}
             >
-              4 v vrsti
+              2 v vrsti
             </button>
             <button
               type="button"
               onClick={() => updateSettings({ tileColumns: 3 })}
-              className={`rounded-2xl px-4 py-3 ${state.settings.tileColumns === 3 ? "bg-glow-500 text-ink-950" : "bg-white/10"}`}
+              className={`rounded-xl px-4 py-3 ${state.settings.tileColumns === 3 ? "bg-ha-primary text-white" : "ha-btn-ghost"}`}
             >
               3 v vrsti
             </button>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+        <div className="ha-panel">
           <h2 className="text-xl">Prijava</h2>
-          <p className="mt-2 text-sm leading-6 text-sand-100/70">
+          <p className="mt-2 text-sm leading-6 text-ha-muted">
             En uporabnik: <strong>admin</strong>. Geslo je na strežniku, seja v piškotku 30 dni.
             Baze ni. Če želiš drugo geslo, ga nastavi v Vercel kot <code>AUTH_PASSWORD</code>.
           </p>
@@ -83,15 +83,15 @@ export default function SettingsPage() {
               await fetch("/api/auth/logout", { method: "POST" });
               window.location.href = "/login";
             }}
-            className="mt-4 rounded-2xl bg-white/10 px-4 py-3"
+            className="ha-btn-ghost mt-4"
           >
             Odjava
           </button>
         </div>
 
-        <form onSubmit={savePin} className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+        <form onSubmit={savePin} className="ha-panel">
           <h2 className="text-xl">PIN zaklep</h2>
-          <p className="mt-2 text-sm text-sand-100/60">
+          <p className="mt-2 text-sm text-ha-muted">
             Dodatno, na tem telefonu. Glavna zaščita je prijava (admin). Baze ne rabiš.
           </p>
           <input
@@ -99,21 +99,21 @@ export default function SettingsPage() {
             value={pin}
             onChange={(event) => setPinValue(event.target.value)}
             placeholder={state.settings.pinHash ? "Nov PIN ali prazno za odstranitev" : "Nastavi PIN"}
-            className="mt-4 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="mt-4 w-full ha-input"
           />
-          <button type="submit" className="mt-4 rounded-2xl bg-white/10 px-4 py-3">
+          <button type="submit" className="ha-btn-ghost mt-4">
             Shrani PIN
           </button>
-          {saved ? <p className="mt-3 text-sm text-glow-400">{saved}</p> : null}
+          {saved ? <p className="mt-3 text-sm text-ha-primary">{saved}</p> : null}
         </form>
 
-        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+        <div className="ha-panel">
           <h2 className="text-xl">Domači strežnik</h2>
-          <p className="mt-2 text-sm leading-6 text-sand-100/70">
+          <p className="mt-2 text-sm leading-6 text-ha-muted">
             Celotnega projekta ne rabiš. Na strežnik gre <strong>ena datoteka</strong>, ki poišče
             releje (Shelly, Tasmota) v omrežju. Aplikacija jih potem krmili od kjerkoli.
           </p>
-          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-6 text-sand-100/70">
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-6 text-ha-muted">
             <li>Namesti Node.js, če ga še ni: nodejs.org</li>
             <li>Na strežniku zaženi ukaz spodaj in pusti okno odprto.</li>
             <li>Žeton se zapiše v token.txt — prilepi ga spodaj.</li>
@@ -127,13 +127,13 @@ export default function SettingsPage() {
             value={state.settings.bridgeUrl}
             onChange={(event) => updateSettings({ bridgeUrl: event.target.value })}
             placeholder="https://xxxx.trycloudflare.com"
-            className="mt-4 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="mt-4 w-full ha-input"
           />
           <input
             value={state.settings.bridgeToken}
             onChange={(event) => updateSettings({ bridgeToken: event.target.value })}
             placeholder="Žeton iz token.txt"
-            className="mt-3 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="mt-3 w-full ha-input"
           />
           <div className="mt-4 flex flex-wrap gap-2">
             <button
@@ -149,25 +149,26 @@ export default function SettingsPage() {
                 }
               }}
               disabled={!state.settings.bridgeUrl || !state.settings.bridgeToken}
-              className="rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-40"
+              className="ha-btn"
             >
               Preizkusi povezavo
             </button>
           </div>
-          {bridgeStatus ? <p className="mt-3 text-sm text-sand-100/75">{bridgeStatus}</p> : null}
+          {bridgeStatus ? <p className="mt-3 text-sm text-ha-muted">{bridgeStatus}</p> : null}
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+        <div className="ha-panel">
           <h2 className="text-xl">Tuya / Smart Life</h2>
-          <p className="mt-2 text-sm leading-6 text-sand-100/70">
-            Releji iz Tuya aplikacije niso vidni na WiFi skenu. Poveži isti račun prek Tuya oblaka.
-            Štiri stikala v Tuya app so na spletni strani ena naprava — v tej aplikaciji jih razdeli
-            na štiri kvadratke.
+          <p className="mt-2 text-sm leading-6 text-ha-muted">
+            Releji in senzorji iz Tuya aplikacije niso vidni na WiFi skenu. Poveži isti račun prek
+            Tuya oblaka. Štiri stikala v Tuya app so na spletni strani ena naprava — v tej
+            aplikaciji jih razdeli na štiri kvadratke. Temperaturni senzor (notri ali zunaj) se
+            uvozi kot kartica s °C.
           </p>
-          <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-6 text-sand-100/70">
+          <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-6 text-ha-muted">
             <li>
               Odpri{" "}
-              <a className="text-glow-400 underline" href="https://iot.tuya.com" target="_blank" rel="noreferrer">
+              <a className="text-ha-primary underline" href="https://iot.tuya.com" target="_blank" rel="noreferrer">
                 iot.tuya.com
               </a>{" "}
               in se registriraj.
@@ -180,7 +181,7 @@ export default function SettingsPage() {
           <select
             value={state.settings.tuyaRegion}
             onChange={(event) => updateSettings({ tuyaRegion: event.target.value })}
-            className="mt-4 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="mt-4 w-full ha-input"
           >
             <option value="eu">Evropa (priporočeno)</option>
             <option value="us">ZDA</option>
@@ -191,14 +192,14 @@ export default function SettingsPage() {
             value={state.settings.tuyaClientId}
             onChange={(event) => updateSettings({ tuyaClientId: event.target.value })}
             placeholder="Access ID"
-            className="mt-3 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="mt-3 w-full ha-input"
           />
           <input
             type="password"
             value={state.settings.tuyaSecret}
             onChange={(event) => updateSettings({ tuyaSecret: event.target.value })}
             placeholder="Access Secret"
-            className="mt-3 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="mt-3 w-full ha-input"
           />
           <button
             type="button"
@@ -227,27 +228,27 @@ export default function SettingsPage() {
               }
             }}
             disabled={!state.settings.tuyaClientId || !state.settings.tuyaSecret}
-            className="mt-4 rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-40"
+            className="mt-4 ha-btn"
           >
             Preizkusi Tuya
           </button>
-          {tuyaStatus ? <p className="mt-3 text-sm text-sand-100/75">{tuyaStatus}</p> : null}
+          {tuyaStatus ? <p className="mt-3 text-sm text-ha-muted">{tuyaStatus}</p> : null}
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+        <div className="ha-panel">
           <h2 className="text-xl">Home Assistant</h2>
           <input
             value={state.settings.haUrl}
             onChange={(event) => updateSettings({ haUrl: event.target.value })}
             placeholder="https://tvoje-ha.ui.nabu.casa"
-            className="mt-4 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="mt-4 w-full ha-input"
           />
           <input
             type="password"
             value={state.settings.haToken}
             onChange={(event) => updateSettings({ haToken: event.target.value })}
             placeholder="Long-lived access token"
-            className="mt-3 w-full rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+            className="mt-3 w-full ha-input"
           />
         </div>
 
@@ -258,12 +259,12 @@ export default function SettingsPage() {
             addRoom(roomName.trim());
             setRoomName("");
           }}
-          className="rounded-3xl border border-white/10 bg-ink-800 p-5"
+          className="ha-panel"
         >
           <h2 className="text-xl">Prostori</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {state.rooms.map((room) => (
-              <span key={room.id} className="rounded-full bg-white/10 px-3 py-1 text-sm">
+              <span key={room.id} className="rounded-full bg-ha-bg px-3 py-1 text-sm">
                 {room.name}
               </span>
             ))}
@@ -273,17 +274,17 @@ export default function SettingsPage() {
               value={roomName}
               onChange={(event) => setRoomName(event.target.value)}
               placeholder="Nov prostor"
-              className="flex-1 rounded-2xl border border-white/10 bg-ink-900 px-4 py-3"
+              className="flex-1 ha-input"
             />
-            <button type="submit" className="rounded-2xl bg-white/10 px-4 py-3">
+            <button type="submit" className="ha-btn-ghost">
               Dodaj
             </button>
           </div>
         </form>
 
-        <div className="rounded-3xl border border-white/10 bg-ink-800 p-5">
+        <div className="ha-panel">
           <h2 className="text-xl">Varnostna kopija in sinhronizacija</h2>
-          <p className="mt-2 text-sm text-sand-100/60">
+          <p className="mt-2 text-sm text-ha-muted">
             Plošča se shrani na strežnik, da jo vidi tudi telefon. Najprej na računalniku tapni
             Pošlji na telefon, potem na telefonu Naloži s strežnika.
           </p>
@@ -292,7 +293,7 @@ export default function SettingsPage() {
               type="button"
               onClick={() => void pushToCloud()}
               disabled={syncing}
-              className="rounded-2xl bg-glow-500 px-4 py-3 font-medium text-ink-950 disabled:opacity-50"
+              className="ha-btn"
             >
               {syncing ? "Pošiljam…" : "Pošlji na telefon"}
             </button>
@@ -300,7 +301,7 @@ export default function SettingsPage() {
               type="button"
               onClick={() => void pullFromCloud()}
               disabled={syncing}
-              className="rounded-2xl bg-white/10 px-4 py-3 disabled:opacity-50"
+              className="ha-btn-ghost disabled:opacity-50"
             >
               Naloži s strežnika
             </button>
@@ -317,11 +318,11 @@ export default function SettingsPage() {
                 link.click();
                 URL.revokeObjectURL(url);
               }}
-              className="rounded-2xl bg-white/10 px-4 py-3"
+              className="ha-btn-ghost"
             >
               Izvozi
             </button>
-            <label className="cursor-pointer rounded-2xl bg-white/10 px-4 py-3">
+            <label className="cursor-pointer ha-btn-ghost">
               Uvozi
               <input
                 type="file"
@@ -342,7 +343,7 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={resetDemo}
-          className="rounded-3xl border border-white/10 bg-ink-800 px-5 py-4 text-left text-sand-100/70"
+          className="ha-panel text-left text-ha-muted"
         >
           Ponastavi demo naprave in ploščo
         </button>

@@ -17,14 +17,14 @@ export function CopyBlock({ label, value }: { label?: string; value: string }) {
 
   return (
     <div className="mt-3">
-      {label ? <p className="mb-1 text-xs text-sand-100/50">{label}</p> : null}
+      {label ? <p className="mb-1 text-xs text-ha-muted">{label}</p> : null}
       <button
         type="button"
         onClick={copy}
-        className="w-full rounded-2xl border border-white/10 bg-ink-900 px-3 py-3 text-left text-xs leading-5 text-sand-100/80"
+        className="w-full rounded-xl border border-ha-line bg-ha-bg px-3 py-3 text-left text-xs leading-5 text-ha-text"
       >
         <span className="block whitespace-pre-wrap break-all font-mono">{value}</span>
-        <span className="mt-2 block text-sand-400">{copied ? "Kopirano" : "Kopiraj"}</span>
+        <span className="mt-2 block text-ha-primary">{copied ? "Kopirano" : "Kopiraj"}</span>
       </button>
     </div>
   );

@@ -7,6 +7,7 @@ import {
   Lightbulb,
   Lock,
   LogOut,
+  Menu,
   Radar,
   Settings,
   Sparkles,
@@ -37,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="grid min-h-screen place-items-center text-sand-100/70">
+      <div className="grid min-h-screen place-items-center text-ha-muted">
         Pripravljam dom ...
       </div>
     );
@@ -46,11 +47,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!unlocked) return <LockScreen />;
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="hidden border-r border-white/5 bg-ink-900/80 p-6 lg:flex lg:flex-col">
-        <div className="mb-10">
-          <p className="text-xs uppercase tracking-[0.24em] text-sand-400">SmartHome</p>
-          <h1 className="mt-2 text-2xl font-medium">{state.settings.homeName}</h1>
+    <div className="min-h-screen bg-ha-bg lg:grid lg:grid-cols-[260px_1fr]">
+      <aside className="hidden border-r border-ha-line bg-white p-6 lg:flex lg:flex-col">
+        <div className="mb-10 flex items-center gap-3">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-ha-primary text-sm font-medium text-white">
+            HA
+          </span>
+          <div>
+            <p className="text-xs text-ha-muted">SmartHome</p>
+            <h1 className="text-lg font-medium">{state.settings.homeName}</h1>
+          </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
           {NAV.map((item) => {
@@ -61,10 +67,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition",
-                  active
-                    ? "bg-white/10 text-white"
-                    : "text-sand-100/70 hover:bg-white/5 hover:text-white",
+                  "flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition",
+                  active ? "bg-sky-50 text-ha-primary" : "text-ha-muted hover:bg-ha-bg hover:text-ha-text",
                 )}
               >
                 <Icon size={18} />
@@ -77,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={lock}
-            className="mt-6 flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-sand-100/60 hover:bg-white/5"
+            className="mt-6 flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-ha-muted hover:bg-ha-bg"
           >
             <Lock size={16} />
             Zakleni PIN
@@ -86,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={logout}
-          className="mt-2 flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-sand-100/60 hover:bg-white/5"
+          className="mt-2 flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-ha-muted hover:bg-ha-bg"
         >
           <LogOut size={16} />
           Odjava
@@ -95,16 +99,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-h-screen flex-col">
         {pathname === "/" ? null : (
-          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-white/5 bg-ink-950/80 px-4 py-3 backdrop-blur lg:hidden">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-sand-400">SmartHome</p>
-              <p className="text-sm font-medium">{state.settings.homeName}</p>
+          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-ha-line bg-white px-4 py-3 lg:hidden">
+            <div className="flex items-center gap-3">
+              <Menu size={20} className="text-ha-muted" />
+              <p className="text-base font-medium">{state.settings.homeName}</p>
             </div>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-xl px-3 py-2 text-xs text-sand-100/60"
-            >
+            <button type="button" onClick={logout} className="rounded-xl px-3 py-2 text-xs text-ha-muted">
               Odjava
             </button>
           </header>
@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         <Toast />
-        <nav className="sticky bottom-0 grid grid-cols-5 border-t border-white/5 bg-ink-950/90 px-1 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+        <nav className="sticky bottom-0 grid grid-cols-5 border-t border-ha-line bg-white px-1 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden">
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
@@ -128,7 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={cn(
                   "flex flex-col items-center gap-1 rounded-xl py-2 text-[11px]",
-                  active ? "text-glow-400" : "text-sand-100/55",
+                  active ? "text-ha-primary" : "text-ha-muted",
                 )}
               >
                 <Icon size={18} />
